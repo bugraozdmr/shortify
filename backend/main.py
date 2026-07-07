@@ -8,7 +8,8 @@ from database import SessionLocal
 from models import Settings
 from sqlalchemy.future import select
 
-from routers import posts, settings, generate
+from routers import posts, settings, generate, stream
+from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
@@ -46,7 +47,18 @@ app.add_middleware(
 app.include_router(posts.router)
 app.include_router(settings.router)
 app.include_router(generate.router)
+app.include_router(stream.router)
+
+# Statik dosyaları dışarıya açma (Videoları izleyebilmek için)
+import os
+if not os.path.exists("assets"):
+    os.makedirs("assets")
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 @app.get("/")
 def read_root():
     return {"message": "Video Pipeline API Çalışıyor! 🚀 Dökümantasyon için /docs adresine gidin."}
+
+@app.get("/health")
+def health_check():
+    return {"status": "success", "message": "Backend is healthy and running."}

@@ -1,0 +1,21 @@
+/* style.css (Overrides & Customizations over AtlantaFX) */
+
+.sidebar {
+    -fx-background-color: -color-bg-subtle;
+    -fx-border-color: transparent -color-border-default transparent transparent;
+    -fx-border-width: 1px;
+}
+
+.sidebar .button {
+    -fx-alignment: CENTER_LEFT;
+    -fx-font-weight: bold;
+}
+
+.sidebar .button.active {
+    -fx-background-color: -color-accent-subtle;
+    -fx-text-fill: -color-accent-fg;
+}
+
+.sidebar .button.active .ikonli-font-icon {
+    -fx-icon-color: -color-accent-fg;
+}

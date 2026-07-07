@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.media.MediaView?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<?import javafx.scene.Cursor?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.shortify.controllers.PostsController">
+    <!-- Birinci Katman: Grid Görünümü (Videolar) -->
+    <VBox fx:id="gridView" spacing="20">
+        <padding>
+            <Insets top="30" right="30" bottom="30" left="30"/>
+        </padding>
+        <VBox spacing="5">
+            <Label text="Gönderiler" styleClass="title-2"/>
+            <Label text="Üretilen tüm videoları buradan izleyin. İzlemek için bir videoya tıklayın." styleClass="text-muted"/>
+        </VBox>
+        
+        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;" styleClass="edge-to-edge">
+            <content>
+                <FlowPane fx:id="postsFlowPane" hgap="20" vgap="20" prefWrapLength="800">
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
+                </FlowPane>
+            </content>
+        </ScrollPane>
+    </VBox>
+
+    <!-- İkinci Katman: Video Detay ve Oynatıcı (Başlangıçta Gizli) -->
+    <VBox fx:id="detailView" style="-fx-background-color: #1a1a1a;" visible="false" spacing="20">
+        <padding>
+            <Insets top="30" right="30" bottom="30" left="30"/>
+        </padding>
+        
+        <HBox alignment="CENTER_LEFT" spacing="15">
+            <Button onAction="#hideDetailView" styleClass="btn, btn-outline">
+                <graphic>
+                    <FontIcon iconLiteral="fth-arrow-left" iconSize="16" styleClass="text-muted"/>
+                </graphic>
+                Geri Dön
+                <cursor>
+                    <Cursor fx:constant="HAND"/>
+                </cursor>
+            </Button>
+            <VBox>
+                <Label fx:id="lblDetailTitle" text="Video Başlığı" styleClass="title-3"/>
+                <Label fx:id="lblDetailDate" text="Tarih" styleClass="text-muted"/>
+            </VBox>
+        </HBox>
+        
+        <StackPane fx:id="videoContainer" VBox.vgrow="ALWAYS" minHeight="0" minWidth="0" style="-fx-background-color: #000; -fx-background-radius: 10; -fx-border-radius: 10; -fx-overflow: hidden;">
+            <MediaView fx:id="mediaView" preserveRatio="true"/>
+            <VBox fx:id="placeholderBox" alignment="CENTER" spacing="10">
+                <FontIcon iconLiteral="fth-loader" iconSize="48" styleClass="text-muted"/>
+                <Label text="Yükleniyor..." styleClass="text-muted"/>
+            </VBox>
+        </StackPane>
+        
+        <HBox alignment="CENTER" spacing="15" fx:id="controlsBox">
+            <Button onAction="#togglePlayPause" styleClass="btn, btn-primary">
+                <graphic>
+                    <FontIcon iconLiteral="fth-pause" iconSize="24" fx:id="playPauseIcon" iconColor="white"/>
+                </graphic>
+                <cursor>
+                    <Cursor fx:constant="HAND"/>
+                </cursor>
+            </Button>
+            <javafx.scene.control.Slider fx:id="videoSlider" HBox.hgrow="ALWAYS" />
+            <Label fx:id="lblVideoTime" text="00:00 / 00:00" styleClass="text-muted, text-small"/>
+        </HBox>
+    </VBox>
+</StackPane>

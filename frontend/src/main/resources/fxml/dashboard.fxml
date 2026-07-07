@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.collections.FXCollections?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<?import java.lang.String?>
+
+<VBox xmlns:fx="http://javafx.com/fxml" fx:controller="com.shortify.controllers.DashboardController" spacing="30">
+    <padding>
+        <Insets top="40" right="40" bottom="40" left="40"/>
+    </padding>
+
+    <!-- Header Title -->
+    <VBox spacing="5">
+        <Label text="Video Oluşturucu" styleClass="title-2"/>
+        <Label text="Yapay Zeka ve Reddit kullanarak harika viral Shorts'lar üretin" styleClass="text-muted"/>
+    </VBox>
+
+    <!-- Generate Panel (Card) -->
+    <VBox styleClass="card, elevated-2" spacing="20">
+        <padding>
+            <Insets top="24" right="24" bottom="24" left="24"/>
+        </padding>
+
+        <Label text="Oluşturma Modu" styleClass="title-4"/>
+        
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <ComboBox fx:id="modeComboBox" prefWidth="300">
+                <items>
+                    <FXCollections fx:factory="observableArrayList">
+                        <String fx:value="Otomatik (Reddit)"/>
+                        <String fx:value="Manuel (Özel Metin)"/>
+                    </FXCollections>
+                </items>
+                <value>
+                    <String fx:value="Otomatik (Reddit)"/>
+                </value>
+            </ComboBox>
+        </HBox>
+
+        <VBox fx:id="manualInputBox" spacing="10" managed="false" visible="false">
+            <Label text="Özel Hikaye Metni:" styleClass="text-muted"/>
+            <TextArea fx:id="customTextArea" promptText="Hikayenizi buraya girin..." prefRowCount="5" wrapText="true"/>
+        </VBox>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <HBox spacing="20" alignment="CENTER_LEFT">
+            <Button text="Video Üret" fx:id="generateBtn" styleClass="accent" onAction="#handleGenerate">
+                <graphic>
+                    <FontIcon iconLiteral="fth-zap" iconSize="18" iconColor="white"/>
+                </graphic>
+                <padding><Insets top="10" right="20" bottom="10" left="20"/></padding>
+            </Button>
+            <Label fx:id="statusLabel" text="Hazır" styleClass="text-muted"/>
+        </HBox>
+    </VBox>
+
+</VBox>
