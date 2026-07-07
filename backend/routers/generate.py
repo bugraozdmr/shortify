@@ -1,0 +1,154 @@
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from schemas import GenerateRequest
+import asyncio
+import os
+import uuid
+
+# Import the standalone pipeline modules
+from pipeline.fetcher import fetch_best_posts
+from pipeline.ai_rewrite import rewrite_text_for_tiktok
+from pipeline.tts import generate_tts
+from pipeline.transcribe import generate_subtitles
+from pipeline.render import render_video, get_random_background_video, get_music_path
+
+# Import Database tools for the background task
+from database import SessionLocal, get_db
+from models import Post, PostStatus, Settings
+
+router = APIRouter(prefix="/generate", tags=["Generate"])
+
+async def run_pipeline_task(request: GenerateRequest):
+    """
+    Arka planda tüm video üretim boru hattını çalıştırır.
+    """
+    # Background task içinde kullanılmak üzere yeni bir session açıyoruz
+    async with SessionLocal() as db:
+        try:
+            # 1. AYARLARI ÇEK
+            result = await db.execute(select(Settings).limit(1))
+            settings = result.scalars().first()
+            if not settings:
+                settings = Settings() # Varsayılan ayarlar
+                db.add(settings)
+                await db.commit()
+            
+            # 2. HİKAYEYİ BELİRLE (Manuel vs Otomatik)
+            post_title = "Otomatik Seçilen Hikaye"
+            original_text = ""
+            source_id = str(uuid.uuid4()) # Varsayılan unique id
+            source = "manual"
+            subreddit = None
+            author = None
+            upvotes = 0
+
+            if request.mode == "manual":
+                if not request.custom_text:
+                    raise Exception("Manuel modda custom_text gönderilmelidir.")
+                # Manuel Mod
+                original_text = request.custom_text
+                post_title = "Özel Metin"
+            else:
+                # Otomatik Mod (Reddit)
+                source = "reddit"
+                subreddit = "tifu"
+                posts = await fetch_best_posts(subreddit, limit=10)
+                
+                selected_post = None
+                for p in posts:
+                    # Veritabanında daha önce bu reddit_id (source_id) var mı?
+                    existing = await db.execute(select(Post).filter(Post.source_id == p['reddit_id']))
+                    if not existing.scalars().first():
+                        selected_post = p
+                        break
+                
+                if not selected_post:
+                    raise Exception("Tüm popüler hikayeler zaten çekilmiş. Yeni hikaye bulunamadı.")
+                
+                original_text = selected_post["text"]
+                post_title = selected_post["title"]
+                source_id = selected_post["reddit_id"]
+            
+            # 3. VERİTABANINA KAYDET (Status: processing)
+            db_post = Post(
+                source=source,
+                source_id=source_id,
+                subreddit=subreddit,
+                author=author,
+                upvotes=upvotes,
+                title=post_title,
+                original_text=original_text,
+                status=PostStatus.processing
+            )
+            db.add(db_post)
+            await db.commit()
+            await db.refresh(db_post)
+
+            # 4. AI REWRITE
+            print(f"[{db_post.id}] AI ile yeniden yazılıyor...")
+            ai_result = await rewrite_text_for_tiktok(post_title, original_text, settings.ai_system_prompt)
+            if not ai_result:
+                raise Exception("Yapay zeka metni oluşturamadı.")
+            
+            ai_text = ai_result["text"]
+            voice = ai_result["voice"]
+            music_name = ai_result["music"]
+            
+            db_post.ai_text = ai_text
+            db_post.ai_prompt_used = settings.ai_system_prompt
+            db_post.voice_used = voice
+            await db.commit()
+
+            # 5. TTS (SES SENTEZİ)
+            print(f"[{db_post.id}] Ses sentezi (TTS) yapılıyor...")
+            audio_path = f"assets/audio/voice_{db_post.id}.wav"
+            await generate_tts(ai_text, audio_path, voice=voice)
+
+            # 6. ALTYAZI (TRANSCRIBE)
+            print(f"[{db_post.id}] Altyazı (.ass) üretiliyor...")
+            ass_path = f"assets/subtitles/sub_{db_post.id}.ass"
+            # generate_subtitles senkron olduğu için to_thread kullanıyoruz
+            await asyncio.to_thread(generate_subtitles, audio_path, ass_path)
+
+            # 7. RENDER (VİDEO OLUŞTURMA)
+            print(f"[{db_post.id}] Video oluşturuluyor...")
+            bg_video = get_random_background_video()
+            bg_music = get_music_path(music_name)
+            if not bg_music:
+                bg_music = get_music_path("Wii Music") # Fallback
+                
+            final_video_path = f"assets/videos/short_{db_post.id}.mp4"
+            
+            # render_video da senkron
+            await asyncio.to_thread(render_video, bg_video, bg_music, audio_path, ass_path, final_video_path)
+
+            # 8. SONUÇ
+            db_post.bg_video_used = os.path.basename(bg_video)
+            db_post.music_used = os.path.basename(bg_music) if bg_music else None
+            db_post.video_path = final_video_path
+            db_post.status = PostStatus.completed
+            await db.commit()
+            
+            print(f"[{db_post.id}] Tüm boru hattı başarıyla tamamlandı: {final_video_path}")
+
+        except Exception as e:
+            print(f"HATA: Boru hattı çalışırken hata oluştu: {str(e)}")
+            if 'db_post' in locals():
+                db_post.status = PostStatus.failed
+                db_post.error_message = str(e)
+                await db.commit()
+
+
+@router.post("/")
+async def generate_video(request: GenerateRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    """
+    Video üretim pipeline'ını başlatır.
+    Eğer request'te metin gelmezse Reddit'ten otomatik çeker.
+    İşlem uzun süreceği için arka planda (BackgroundTasks) çalıştırılır.
+    """
+    background_tasks.add_task(run_pipeline_task, request)
+    return {
+        "message": "Video üretim işlemi arka planda başarıyla başlatıldı. Logları takip edebilirsiniz.",
+        "status": "processing"
+    }
