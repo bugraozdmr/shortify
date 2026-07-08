@@ -3,7 +3,13 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.StackPane?>
@@ -12,8 +18,8 @@
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 <?import javafx.scene.Cursor?>
 
-<StackPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.shortify.controllers.PostsController">
-    <!-- Birinci Katman: Grid Görünümü (Videolar) -->
+<StackPane fx:id="rootPane" xmlns:fx="http://javafx.com/fxml" fx:controller="com.shortify.controllers.PostsController">
+    <!-- ═══════════ Birinci Katman: Grid Görünümü ═══════════ -->
     <VBox fx:id="gridView" spacing="20">
         <padding>
             <Insets top="30" right="30" bottom="30" left="30"/>
@@ -23,58 +29,168 @@
             <Label text="Üretilen tüm videoları buradan izleyin. İzlemek için bir videoya tıklayın." styleClass="text-muted"/>
         </VBox>
         
+        <!-- Filtreleme Çubuğu -->
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <ComboBox fx:id="cmbStatusFilter" promptText="Durum" prefWidth="150" styleClass="combo-box"/>
+            <ComboBox fx:id="cmbPublishFilter" promptText="Yayın" prefWidth="150" styleClass="combo-box"/>
+            <ComboBox fx:id="cmbSortFilter" promptText="Sıralama" prefWidth="150" styleClass="combo-box"/>
+            <Region HBox.hgrow="ALWAYS" />
+            <Button text="Filtrele" onAction="#applyFilters" styleClass="btn, btn-primary">
+                <graphic><FontIcon iconLiteral="fth-filter" iconSize="16" iconColor="white"/></graphic>
+                <cursor><Cursor fx:constant="HAND"/></cursor>
+            </Button>
+        </HBox>
+        
         <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;" styleClass="edge-to-edge">
             <content>
-                <FlowPane fx:id="postsFlowPane" hgap="20" vgap="20" prefWrapLength="800">
-                    <padding>
-                        <Insets top="10" right="10" bottom="10" left="10"/>
-                    </padding>
-                </FlowPane>
+                <StackPane alignment="TOP_CENTER">
+                    <FlowPane fx:id="postsFlowPane" hgap="20" vgap="20" prefWrapLength="800">
+                        <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                    </FlowPane>
+                    <VBox fx:id="errorBox" alignment="CENTER" spacing="15" visible="false" managed="false">
+                        <padding><Insets top="50"/></padding>
+                        <FontIcon iconLiteral="fth-alert-circle" iconSize="64" styleClass="text-danger"/>
+                        <Label fx:id="lblErrorMessage" text="Sunucuya bağlanılamadı." styleClass="title-3"/>
+                        <Label text="Sunucu kapalı olabilir veya ağ bağlantınızda sorun var." styleClass="text-muted"/>
+                        <Button text="Tekrar Dene" onAction="#loadPosts" styleClass="btn, btn-primary">
+                            <graphic><FontIcon iconLiteral="fth-refresh-cw" iconSize="16" iconColor="white"/></graphic>
+                            <cursor><Cursor fx:constant="HAND"/></cursor>
+                        </Button>
+                    </VBox>
+                </StackPane>
             </content>
         </ScrollPane>
+        
+        <!-- Sayfalama -->
+        <HBox alignment="CENTER" spacing="20">
+            <Button fx:id="btnPrevPage" text="Önceki" onAction="#prevPage" styleClass="btn, btn-outline">
+                <graphic><FontIcon iconLiteral="fth-chevron-left" iconSize="16"/></graphic>
+                <cursor><Cursor fx:constant="HAND"/></cursor>
+            </Button>
+            <Label fx:id="lblPageInfo" text="Sayfa 1 / 1" styleClass="text-bold" />
+            <Button fx:id="btnNextPage" text="Sonraki" onAction="#nextPage" styleClass="btn, btn-outline" contentDisplay="RIGHT">
+                <graphic><FontIcon iconLiteral="fth-chevron-right" iconSize="16"/></graphic>
+                <cursor><Cursor fx:constant="HAND"/></cursor>
+            </Button>
+        </HBox>
     </VBox>
 
-    <!-- İkinci Katman: Video Detay ve Oynatıcı (Başlangıçta Gizli) -->
-    <VBox fx:id="detailView" style="-fx-background-color: #1a1a1a;" visible="false" spacing="20">
-        <padding>
-            <Insets top="30" right="30" bottom="30" left="30"/>
-        </padding>
+    <!-- ═══════════ İkinci Katman: Video Detay Sayfası ═══════════ -->
+    <VBox fx:id="detailView" visible="false" managed="false" styleClass="detail-view" spacing="0">
         
-        <HBox alignment="CENTER_LEFT" spacing="15">
-            <Button onAction="#hideDetailView" styleClass="btn, btn-outline">
-                <graphic>
-                    <FontIcon iconLiteral="fth-arrow-left" iconSize="16" styleClass="text-muted"/>
-                </graphic>
-                Geri Dön
-                <cursor>
-                    <Cursor fx:constant="HAND"/>
-                </cursor>
+        <!-- ── Üst Toolbar ── -->
+        <HBox alignment="CENTER_LEFT" spacing="10" styleClass="detail-toolbar">
+            <Button text="Geri Dön" onAction="#hideDetail" styleClass="btn, btn-outline" style="-fx-font-size: 13px;">
+                <graphic><FontIcon iconLiteral="fth-arrow-left" iconSize="14"/></graphic>
+                <cursor><Cursor fx:constant="HAND"/></cursor>
             </Button>
-            <VBox>
-                <Label fx:id="lblDetailTitle" text="Video Başlığı" styleClass="title-3"/>
-                <Label fx:id="lblDetailDate" text="Tarih" styleClass="text-muted"/>
-            </VBox>
+            <Region HBox.hgrow="ALWAYS" />
+            <FlowPane alignment="CENTER_RIGHT" hgap="8" vgap="8">
+                <Button text="Sil" onAction="#deletePost" styleClass="btn, btn-outline" style="-fx-font-size: 13px;">
+                    <graphic><FontIcon iconLiteral="fth-trash-2" iconSize="14" iconColor="#e74c3c"/></graphic>
+                    <cursor><Cursor fx:constant="HAND"/></cursor>
+                </Button>
+                <Button fx:id="btnPublish" text="YouTube'da Yayınla" onAction="#publishPost" styleClass="btn, accent" style="-fx-font-size: 13px;">
+                    <graphic><FontIcon iconLiteral="fth-youtube" iconSize="14" iconColor="white"/></graphic>
+                    <cursor><Cursor fx:constant="HAND"/></cursor>
+                </Button>
+            </FlowPane>
         </HBox>
         
-        <StackPane fx:id="videoContainer" VBox.vgrow="ALWAYS" minHeight="0" minWidth="0" style="-fx-background-color: #000; -fx-background-radius: 10; -fx-border-radius: 10; -fx-overflow: hidden;">
-            <MediaView fx:id="mediaView" preserveRatio="true"/>
-            <VBox fx:id="placeholderBox" alignment="CENTER" spacing="10">
-                <FontIcon iconLiteral="fth-loader" iconSize="48" styleClass="text-muted"/>
-                <Label text="Yükleniyor..." styleClass="text-muted"/>
+        <!-- ── Ana İçerik: Video (Sol) + Form (Sağ) ── -->
+        <ScrollPane fx:id="detailScrollPane" fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="detail-scroll" style="-fx-background-color: transparent;">
+            <HBox fx:id="contentArea">
+                <padding><Insets top="25" right="30" bottom="30" left="30"/></padding>
+            
+            <!-- ▸ Sol Panel: Video Oynatıcı -->
+            <VBox fx:id="videoPanel" spacing="15" alignment="TOP_CENTER" HBox.hgrow="ALWAYS">
+                
+                <StackPane fx:id="videoContainer" VBox.vgrow="ALWAYS" alignment="CENTER" minHeight="350" styleClass="video-container">
+                    <MediaView fx:id="mediaView" preserveRatio="true"/>
+                    <VBox fx:id="placeholderBox" alignment="CENTER" spacing="10">
+                        <FontIcon iconLiteral="fth-loader" iconSize="48" styleClass="text-muted"/>
+                        <Label text="Yükleniyor..." styleClass="text-muted"/>
+                    </VBox>
+                </StackPane>
+                
+                <!-- Video Kontrolleri -->
+                <HBox alignment="CENTER" spacing="12" fx:id="controlsBox" styleClass="video-controls">
+                    <Button onAction="#togglePlayPause" styleClass="btn, btn-primary" style="-fx-padding: 8 14;">
+                        <graphic><FontIcon iconLiteral="fth-pause" iconSize="18" fx:id="playPauseIcon" iconColor="white"/></graphic>
+                        <cursor><Cursor fx:constant="HAND"/></cursor>
+                    </Button>
+                    <javafx.scene.control.Slider fx:id="videoSlider" HBox.hgrow="ALWAYS" />
+                    <Label fx:id="lblVideoTime" text="00:00 / 00:00" styleClass="text-muted" style="-fx-font-size: 12px; -fx-min-width: 80;"/>
+                </HBox>
             </VBox>
-        </StackPane>
+            
+            <!-- ▸ Sağ Panel: Detay + Düzenleme Formu (Her zaman açık) -->
+            <VBox fx:id="editFormBox" spacing="0" styleClass="detail-form-panel">
+                
+                <!-- Başlık + Tarih -->
+                <VBox spacing="4" styleClass="form-section">
+                    <Label fx:id="lblDetailTitle" text="Video Başlığı" styleClass="title-4" wrapText="true"/>
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fth-calendar" iconSize="13" styleClass="text-muted"/>
+                        <Label fx:id="lblDetailDate" text="Tarih" styleClass="text-muted" style="-fx-font-size: 12px;"/>
+                    </HBox>
+                </VBox>
+                
+                <Region styleClass="form-divider"/>
+                
+                <!-- YouTube Başlığı -->
+                <VBox spacing="6" styleClass="form-section">
+                    <HBox alignment="CENTER_LEFT" spacing="8">
+                        <FontIcon iconLiteral="fth-type" iconSize="14" styleClass="text-muted"/>
+                        <Label text="YouTube Başlığı" styleClass="text-bold" style="-fx-font-size: 13px;"/>
+                    </HBox>
+                    <TextField fx:id="txtYoutubeTitle" promptText="YouTube başlığını girin..." styleClass="detail-input"/>
+                </VBox>
+
+                <!-- YouTube Açıklaması -->
+                <VBox spacing="6" styleClass="form-section">
+                    <HBox alignment="CENTER_LEFT" spacing="8">
+                        <FontIcon iconLiteral="fth-align-left" iconSize="14" styleClass="text-muted"/>
+                        <Label text="Açıklama" styleClass="text-bold" style="-fx-font-size: 13px;"/>
+                    </HBox>
+                    <TextArea fx:id="txtYoutubeDesc" promptText="Videonuzu anlatan bir metin ve etiketler..." prefRowCount="5" wrapText="true" styleClass="detail-input"/>
+                </VBox>
+
+                <!-- YouTube Etiketleri -->
+                <VBox spacing="6" styleClass="form-section">
+                    <HBox alignment="CENTER_LEFT" spacing="8">
+                        <FontIcon iconLiteral="fth-hash" iconSize="14" styleClass="text-muted"/>
+                        <Label text="Etiketler" styleClass="text-bold" style="-fx-font-size: 13px;"/>
+                    </HBox>
+                    <TextField fx:id="txtYoutubeTags" promptText="shorts, eğlence, komedi" styleClass="detail-input"/>
+                </VBox>
+                
+                <!-- Zamanlama -->
+                <VBox spacing="6" styleClass="form-section">
+                    <CheckBox fx:id="chkSchedule" text="İleri bir tarihte yayınla" styleClass="text-bold" style="-fx-font-size: 13px;"/>
+                    <HBox fx:id="scheduleBox" spacing="10" disable="true">
+                        <DatePicker fx:id="dpScheduleDate" promptText="Tarih seçin" styleClass="detail-input" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                        <TextField fx:id="txtScheduleTime" promptText="18:00" prefWidth="70" styleClass="detail-input"/>
+                    </HBox>
+                </VBox>
+                
+                <Region VBox.vgrow="ALWAYS"/>
+                
+                <!-- Butonlar -->
+                <HBox spacing="12" alignment="CENTER_RIGHT" styleClass="form-section">
+                    <Button fx:id="btnViewYoutube" text="YouTube'da İzle" onAction="#openYoutube" styleClass="btn, danger" prefWidth="140" style="-fx-font-size: 13px;" visible="false" managed="false">
+                        <cursor><Cursor fx:constant="HAND"/></cursor>
+                        <graphic><FontIcon iconLiteral="fth-youtube" iconSize="14" iconColor="white"/></graphic>
+                    </Button>
+                    <Button fx:id="btnSave" text="Kaydet" onAction="#saveEdit" styleClass="btn, accent" prefWidth="140" style="-fx-font-size: 13px;">
+                        <cursor><Cursor fx:constant="HAND"/></cursor>
+                        <graphic><FontIcon iconLiteral="fth-save" iconSize="14" iconColor="white"/></graphic>
+                    </Button>
+                </HBox>
+            </VBox>
+            
+            </HBox>
+        </ScrollPane>
         
-        <HBox alignment="CENTER" spacing="15" fx:id="controlsBox">
-            <Button onAction="#togglePlayPause" styleClass="btn, btn-primary">
-                <graphic>
-                    <FontIcon iconLiteral="fth-pause" iconSize="24" fx:id="playPauseIcon" iconColor="white"/>
-                </graphic>
-                <cursor>
-                    <Cursor fx:constant="HAND"/>
-                </cursor>
-            </Button>
-            <javafx.scene.control.Slider fx:id="videoSlider" HBox.hgrow="ALWAYS" />
-            <Label fx:id="lblVideoTime" text="00:00 / 00:00" styleClass="text-muted, text-small"/>
-        </HBox>
     </VBox>
 </StackPane>

@@ -13,10 +13,6 @@ CHUNK_SIZE = 1024 * 1024 * 2
 
 @router.get("/thumbnail/{video_name}")
 async def get_thumbnail(video_name: str):
-    """
-    Video için kapak resmi (thumbnail) döndürür.
-    Eğer henüz oluşturulmamışsa ffmpeg ile anında oluşturur.
-    """
     video_path = os.path.join("assets", "videos", video_name)
     
     if not os.path.exists(video_path):
@@ -44,11 +40,6 @@ async def get_thumbnail(video_name: str):
 
 @router.get("/video/{video_name}")
 async def stream_video(video_name: str, request: Request):
-    """
-    Performanslı Video Stream Endpoint'i
-    Uzak sunucularda (production) donma ve takılmaları önlemek için HTTP Range (206 Partial Content) destekler.
-    Videonun tamamını belleğe almak yerine CHUNK_SIZE boyutunda parçalar halinde istemciye iletir.
-    """
     video_path = os.path.join("assets", "videos", video_name)
     
     # Dosya yoksa 404 dön

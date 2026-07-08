@@ -1,6 +1,7 @@
 import stable_whisper
 import os
 import ssl
+from loguru import logger
 
 # Workaround for macOS Python SSL certificate download issues
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -13,15 +14,15 @@ def generate_subtitles(audio_path: str, output_path: str = None) -> str:
     if not output_path:
         output_path = audio_path.replace('.mp3', '.ass').replace('.wav', '.ass')
         
-    print("Loading Whisper model (this may take a moment on first run)...")
+    logger.info("Loading Whisper model (this may take a moment on first run)...")
     # 'small' model is a good balance between speed and accuracy for Turkish
     model = stable_whisper.load_model('small')
     
-    print(f"Transcribing {audio_path}...")
+    logger.info(f"Transcribing {audio_path}...")
     # Transcribe the audio
     result = model.transcribe(audio_path, language="tr")
     
-    print(f"Generating .ass subtitles at {output_path}...")
+    logger.info(f"Generating .ass subtitles at {output_path}...")
     
     # Generate Advanced SubStation Alpha file for TikTok-style styling
     # stable-ts natively applies a karaoke effect for word-level sync

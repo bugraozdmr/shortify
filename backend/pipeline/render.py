@@ -2,6 +2,7 @@ import os
 import random
 import subprocess
 from pathlib import Path
+from loguru import logger
 
 def get_random_background_video() -> str:
     """Returns the path to a random background video."""
@@ -43,7 +44,7 @@ def render_video(bg_video_path: str, bg_music_path: str, voice_audio_path: str, 
         "-i", voice_audio_path,
         "-stream_loop", "-1", "-i", bg_music_path,
         "-filter_complex", 
-        f"[0:v]ass='{ass_escaped}'[v];[2:a]volume=0.10[music];[1:a][music]amix=inputs=2:duration=first:dropout_transition=2[a]",
+        f"[0:v]ass='{ass_escaped}'[v];[2:a]volume=0.25[music];[1:a][music]amix=inputs=2:duration=first:dropout_transition=2[a]",
         "-map", "[v]",
         "-map", "[a]",
         "-c:v", "libx264",
@@ -52,8 +53,8 @@ def render_video(bg_video_path: str, bg_music_path: str, voice_audio_path: str, 
         output_path
     ]
     
-    print("Running FFmpeg render...")
-    print("Command:", " ".join(cmd))
+    logger.info("Running FFmpeg render...")
+    logger.debug("Command: {}", " ".join(cmd))
     
     # Run FFmpeg
     subprocess.run(cmd, check=True)

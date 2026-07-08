@@ -3,6 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
@@ -11,57 +12,60 @@
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
+<?import javafx.scene.Cursor?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.shortify.controllers.MainController" prefHeight="700" prefWidth="1000">
 
-    <!-- SIDEBAR -->
+    <!-- ═══ SIDEBAR ═══ -->
     <left>
-        <VBox styleClass="sidebar" prefWidth="250" spacing="10">
+        <VBox fx:id="sidebar" styleClass="sidebar" spacing="4">
             <padding>
-                <Insets top="30" bottom="20"/>
+                <Insets top="20" bottom="15" left="8" right="8"/>
             </padding>
-            <HBox alignment="CENTER">
-                <padding><Insets bottom="40"/></padding>
-                <ImageView fitHeight="80" preserveRatio="true">
-                    <image>
-                        <Image url="@../images/icon.png" />
-                    </image>
+            
+            <!-- Logo + App Name -->
+            <HBox fx:id="logoBox" alignment="CENTER_LEFT" spacing="10">
+                <padding><Insets bottom="25" left="6"/></padding>
+                <ImageView fx:id="logoImage" fitHeight="36" preserveRatio="true">
+                    <image><Image url="@../images/icon.png" /></image>
                 </ImageView>
+                <Label fx:id="lblAppName" text="Shortify" style="-fx-font-size: 17px; -fx-font-weight: bold;"/>
             </HBox>
             
-            <Button fx:id="btnDashboard" text="Panel" maxWidth="Infinity" styleClass="flat" onAction="#showDashboard">
-                <graphic>
-                    <FontIcon iconLiteral="fth-play-circle" iconSize="18"/>
-                </graphic>
-                <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+            <!-- Menü Etiket -->
+            <Label fx:id="lblMenuTitle" text="MENÜ" style="-fx-font-size: 10px; -fx-text-fill: -color-fg-muted; -fx-font-weight: bold; -fx-padding: 8 12 4 12;"/>
+            
+            <Button fx:id="btnPosts" text="Gönderiler" maxWidth="Infinity" styleClass="flat, nav-btn" onAction="#showPosts">
+                <graphic><FontIcon iconLiteral="fth-film" iconSize="18"/></graphic>
+                <cursor><Cursor fx:constant="HAND"/></cursor>
+                <tooltip><Tooltip text="Gönderiler"/></tooltip>
             </Button>
 
-            <Button fx:id="btnPosts" text="Gönderiler" maxWidth="Infinity" styleClass="flat" onAction="#showPosts">
-                <graphic>
-                    <FontIcon iconLiteral="fth-list" iconSize="18"/>
-                </graphic>
-                <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
-            </Button>
-
-            <Button fx:id="btnSettings" text="Ayarlar" maxWidth="Infinity" styleClass="flat" onAction="#showSettings">
-                <graphic>
-                    <FontIcon iconLiteral="fth-settings" iconSize="18"/>
-                </graphic>
-                <padding><Insets top="12" right="20" bottom="12" left="20"/></padding>
+            <Button fx:id="btnSettings" text="Ayarlar" maxWidth="Infinity" styleClass="flat, nav-btn" onAction="#showSettings">
+                <graphic><FontIcon iconLiteral="fth-settings" iconSize="18"/></graphic>
+                <cursor><Cursor fx:constant="HAND"/></cursor>
+                <tooltip><Tooltip text="Ayarlar"/></tooltip>
             </Button>
 
             <Region VBox.vgrow="ALWAYS"/>
+            
+            <Button fx:id="btnCollapse" text="Daralt" onAction="#toggleSidebar" styleClass="flat, nav-btn" maxWidth="Infinity">
+                <graphic><FontIcon fx:id="collapseIcon" iconLiteral="fth-chevrons-left" iconSize="18"/></graphic>
+                <cursor><Cursor fx:constant="HAND"/></cursor>
+                <tooltip><Tooltip text="Kenar çubuğunu daralt/genişlet"/></tooltip>
+            </Button>
 
-            <!-- Global Status Indicator -->
-            <HBox alignment="CENTER_LEFT" spacing="10" styleClass="bg-subtle">
-                <padding><Insets top="15" right="20" bottom="15" left="20"/></padding>
-                <Label fx:id="lblGlobalStatusIcon" style="-fx-font-size: 14px; -fx-text-fill: -color-danger-emphasis;" text="●" />
-                <Label fx:id="lblGlobalStatusText" text="Bağlantı Yok" styleClass="text-muted, text-small" />
+            <!-- Alt kısım: Sunucu durumu -->
+            <Region styleClass="sidebar-divider"/>
+            
+            <HBox fx:id="statusBar" alignment="CENTER_LEFT" spacing="10" styleClass="status-bar">
+                <Label fx:id="lblGlobalStatusIcon" style="-fx-font-size: 10px; -fx-text-fill: -color-danger-emphasis;" text="●" />
+                <Label fx:id="lblGlobalStatusText" text="Bağlantı Yok" styleClass="text-muted" style="-fx-font-size: 12px;" />
             </HBox>
         </VBox>
     </left>
 
-    <!-- MAIN CONTENT AREA -->
+    <!-- ═══ MAIN CONTENT AREA ═══ -->
     <center>
         <StackPane fx:id="contentArea">
             <!-- Dynamic Views loaded here -->

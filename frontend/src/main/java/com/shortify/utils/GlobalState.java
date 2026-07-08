@@ -7,6 +7,7 @@ import javafx.application.Platform;
 public class GlobalState {
     private static GlobalState instance;
     private final BooleanProperty backendOnline = new SimpleBooleanProperty(false);
+    private final javafx.beans.property.IntegerProperty refreshPostsTrigger = new javafx.beans.property.SimpleIntegerProperty(0);
 
     private GlobalState() {}
 
@@ -30,6 +31,18 @@ public class GlobalState {
             backendOnline.set(online);
         } else {
             Platform.runLater(() -> backendOnline.set(online));
+        }
+    }
+
+    public javafx.beans.property.IntegerProperty refreshPostsTriggerProperty() {
+        return refreshPostsTrigger;
+    }
+
+    public void triggerPostsRefresh() {
+        if (Platform.isFxApplicationThread()) {
+            refreshPostsTrigger.set(refreshPostsTrigger.get() + 1);
+        } else {
+            Platform.runLater(() -> refreshPostsTrigger.set(refreshPostsTrigger.get() + 1));
         }
     }
 }

@@ -5,32 +5,17 @@ from models import PostStatus
 
 # ---------- SETTINGS SCHEMAS ----------
 
-class SettingsBase(BaseModel):
-    is_auto_upload: bool
-    allowed_upload_start_time: str
-    allowed_upload_end_time: str
-    ai_provider: str
-    ai_model: str
-    ai_system_prompt: Optional[str] = None
-    default_voice_male: str
-    default_voice_female: str
-    font_style: str
-    font_size: int
-    subtitle_outline: float
-    youtube_privacy: str
-    youtube_category_id: str
-    youtube_tags: str
+from typing import Dict, Any
 
-class SettingsUpdate(SettingsBase):
-    pass
-
-class SettingsOut(SettingsBase):
-    id: int
-    updated_at: Optional[datetime] = None
-
-    model_config = ConfigDict(from_attributes=True)
+SettingsPayload = Dict[str, Any]
 
 # ---------- POST SCHEMAS ----------
+
+class PostUpdate(BaseModel):
+    youtube_title: Optional[str] = None
+    youtube_description: Optional[str] = None
+    youtube_tags: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
 
 class PostOut(BaseModel):
     id: int
@@ -48,15 +33,23 @@ class PostOut(BaseModel):
     bg_video_used: Optional[str] = None
     status: PostStatus
     error_message: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
     video_path: Optional[str] = None
     youtube_video_id: Optional[str] = None
     youtube_url: Optional[str] = None
     youtube_status: str
+    youtube_title: Optional[str] = None
+    youtube_description: Optional[str] = None
+    youtube_tags: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     published_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class PaginatedPostsOut(BaseModel):
+    total: int
+    items: list[PostOut]
 
 from enum import Enum
 

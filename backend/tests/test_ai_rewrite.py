@@ -1,13 +1,11 @@
 import pytest
 import os
-from pipeline.ai_rewrite import rewrite_text_for_tiktok, AI_PROVIDER
+from pipeline.ai_rewrite import rewrite_text_for_tiktok
+
+AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini")
 
 @pytest.mark.asyncio
 async def test_rewrite_text_for_tiktok():
-    """
-    Test that the AI rewrite function works correctly.
-    This test will be skipped if the corresponding API key is missing from .env
-    """
     if AI_PROVIDER == "gemini" and not os.getenv("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not found in .env")
     elif AI_PROVIDER == "openai" and not os.getenv("OPENAI_API_KEY"):
@@ -20,7 +18,6 @@ async def test_rewrite_text_for_tiktok():
     
     result = await rewrite_text_for_tiktok(title=sample_title, text=sample_text)
     
-    # Check that we got a valid response
     assert result is not None
     assert isinstance(result, dict)
     assert "text" in result

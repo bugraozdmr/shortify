@@ -1,21 +1,123 @@
 /* style.css (Overrides & Customizations over AtlantaFX) */
 
+/* ═══════════════════════════════════════════════════════
+   Sidebar
+   ═══════════════════════════════════════════════════════ */
+
 .sidebar {
     -fx-background-color: -color-bg-subtle;
     -fx-border-color: transparent -color-border-default transparent transparent;
-    -fx-border-width: 1px;
+    -fx-border-width: 0 1 0 0;
 }
 
-.sidebar .button {
+/* Nav buton varsayılan */
+.nav-btn {
     -fx-alignment: CENTER_LEFT;
-    -fx-font-weight: bold;
+    -fx-font-weight: 600;
+    -fx-font-size: 13px;
+    -fx-padding: 12 16;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
 }
 
-.sidebar .button.active {
+.nav-btn:hover {
+    -fx-background-color: -color-bg-default;
+}
+
+/* Aktif buton */
+.nav-btn.active {
     -fx-background-color: -color-accent-subtle;
     -fx-text-fill: -color-accent-fg;
 }
 
-.sidebar .button.active .ikonli-font-icon {
+.nav-btn.active .ikonli-font-icon {
     -fx-icon-color: -color-accent-fg;
+}
+
+/* Sidebar ayırıcı çizgi */
+.sidebar-divider {
+    -fx-background-color: -color-border-default;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+    -fx-padding: 0 4;
+}
+
+/* Durum çubuğu */
+.status-bar {
+    -fx-padding: 12 12 4 12;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Detail View — YouTube Studio Style
+   ═══════════════════════════════════════════════════════ */
+
+/* ScrollPane: tamamen transparent, kenarlık yok */
+.detail-scroll,
+.detail-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+/* Detail view — ana arka plan */
+.detail-view {
+    -fx-background-color: -color-bg-default;
+}
+
+/* Üst toolbar */
+.detail-toolbar {
+    -fx-padding: 12 25;
+    -fx-border-color: transparent transparent -color-border-default transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* Video container — gölge + yuvarlatma */
+.video-container {
+    -fx-background-color: #000;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 24, 0, 0, 6);
+}
+
+/* Video kontrolleri */
+.video-controls {
+    -fx-background-color: -color-bg-subtle;
+    -fx-padding: 10 15;
+    -fx-background-radius: 10;
+}
+
+/* ── Sağ Form Panel ── */
+.detail-form-panel {
+    -fx-background-color: -color-bg-subtle;
+    -fx-background-radius: 12;
+    -fx-border-color: -color-border-default;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-min-width: 320;
+    -fx-pref-width: 380;
+}
+
+/* Form bölüm spacing */
+.form-section {
+    -fx-padding: 16 20;
+}
+
+/* Form arası ince çizgi */
+.form-divider {
+    -fx-background-color: -color-border-default;
+    -fx-pref-height: 1;
+    -fx-max-height: 1;
+}
+
+/* Form içi input'lar */
+.detail-input {
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: -color-border-default;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+}
+
+.detail-input:focused {
+    -fx-border-color: -color-accent-emphasis;
+    -fx-effect: dropshadow(gaussian, -color-accent-subtle, 6, 0, 0, 0);
 }

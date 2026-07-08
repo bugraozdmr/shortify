@@ -3,28 +3,38 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
+from loguru import logger
+
+if not os.path.exists("logs"):
+    os.makedirs("logs")
+
+logger.add(
+    "logs/app.log",
+    rotation="5 MB",
+    retention=2,
+    encoding="utf-8",
+    level="INFO",
+    backtrace=True,
+    diagnose=True
+)
 
 from database import SessionLocal
-from models import Settings
 from sqlalchemy.future import select
 
 from routers import posts, settings, generate, stream
+from services.scheduler import start_scheduler, stop_scheduler
+from services.auto_generator import start as start_auto_gen, stop as stop_auto_gen
 from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Uygulama başlarken varsayılan ayarları veritabanına ekle (Seed)
-    async with SessionLocal() as db:
-        result = await db.execute(select(Settings).limit(1))
-        current_settings = result.scalars().first()
-        if not current_settings:
-            print("Veritabanına varsayılan ayarlar (Seed) yükleniyor...")
-            default_settings = Settings()
-            db.add(default_settings)
-            await db.commit()
+    start_scheduler()
+    start_auto_gen()
     yield
+    stop_auto_gen()
+    stop_scheduler()
 
 APP_TYPE = os.getenv("APP_TYPE", "DEVELOPMENT").upper()
 

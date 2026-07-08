@@ -1,5 +1,6 @@
 import asyncio
 from playwright.async_api import async_playwright
+from loguru import logger
 
 import random
 
@@ -121,7 +122,7 @@ async def fetch_best_posts(subreddit_name: str = "tifu", limit: int = 5):
         )
         page = await context.new_page()
         
-        print(f"Fetching posts from r/{subreddit_name}...")
+        logger.info(f"Fetching posts from r/{subreddit_name}...")
         
         # Go to old reddit for easier parsing
         await page.goto(f"https://old.reddit.com/r/{subreddit_name}/top/?sort=top&t=day")
@@ -158,7 +159,7 @@ async def fetch_best_posts(subreddit_name: str = "tifu", limit: int = 5):
                     "title": title,
                     "text": text
                 })
-                print(f"Fetched: {title}")
+                logger.info(f"Fetched: {title}")
         
         await browser.close()
         

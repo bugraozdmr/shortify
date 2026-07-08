@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from loguru import logger
 from schemas import GenerateRequest
 import asyncio
 import os
+import re
 import uuid
 
 # Import the standalone pipeline modules
@@ -15,24 +17,28 @@ from pipeline.render import render_video, get_random_background_video, get_music
 
 # Import Database tools for the background task
 from database import SessionLocal, get_db
-from models import Post, PostStatus, Settings
+from models import Post, PostStatus, Setting
 
 router = APIRouter(prefix="/generate", tags=["Generate"])
 
 async def run_pipeline_task(request: GenerateRequest):
-    """
-    Arka planda tüm video üretim boru hattını çalıştırır.
-    """
     # Background task içinde kullanılmak üzere yeni bir session açıyoruz
     async with SessionLocal() as db:
         try:
+            import json
             # 1. AYARLARI ÇEK
-            result = await db.execute(select(Settings).limit(1))
-            settings = result.scalars().first()
-            if not settings:
-                settings = Settings() # Varsayılan ayarlar
-                db.add(settings)
-                await db.commit()
+            result = await db.execute(select(Setting))
+            setting_rows = result.scalars().all()
+            settings_dict = {}
+            for s in setting_rows:
+                try:
+                    settings_dict[s.key] = json.loads(s.value)
+                except:
+                    settings_dict[s.key] = s.value
+                    
+            ai_provider = settings_dict.get("ai_provider", "gemini")
+            ai_model = settings_dict.get("ai_model", "gemini-2.5-flash")
+            api_keys = settings_dict.get("api_keys", {})
             
             # 2. HİKAYEYİ BELİRLE (Manuel vs Otomatik)
             post_title = "Otomatik Seçilen Hikaye"
@@ -86,33 +92,49 @@ async def run_pipeline_task(request: GenerateRequest):
             await db.refresh(db_post)
 
             # 4. AI REWRITE
-            print(f"[{db_post.id}] AI ile yeniden yazılıyor...")
-            ai_result = await rewrite_text_for_tiktok(post_title, original_text, settings.ai_system_prompt)
+            logger.info(f"[{db_post.id}] AI ile yeniden yazılıyor...")
+            ai_result = await rewrite_text_for_tiktok(
+                title=post_title, 
+                text=original_text, 
+                provider=ai_provider,
+                model=ai_model,
+                api_keys=api_keys
+            )
             if not ai_result:
                 raise Exception("Yapay zeka metni oluşturamadı.")
             
             ai_text = ai_result["text"]
+            # Normalize whitespace: collapse all newlines and extra spaces
+            ai_text = re.sub(r'\n\s*\n+', ' ', ai_text)
+            ai_text = re.sub(r'\n', ' ', ai_text)
+            ai_text = re.sub(r'  +', ' ', ai_text).strip()
+            # Remove ellipses and long pauses for continuous flow
+            ai_text = ai_text.replace('...', '')
+            ai_text = ai_text.replace('..', '')
+
             voice = ai_result["voice"]
             music_name = ai_result["music"]
-            
+
             db_post.ai_text = ai_text
-            db_post.ai_prompt_used = settings.ai_system_prompt
             db_post.voice_used = voice
+            db_post.youtube_title = ai_result.get("youtube_title")
+            db_post.youtube_description = ai_result.get("youtube_description")
+            db_post.youtube_tags = ai_result.get("youtube_tags")
             await db.commit()
 
             # 5. TTS (SES SENTEZİ)
-            print(f"[{db_post.id}] Ses sentezi (TTS) yapılıyor...")
+            logger.info(f"[{db_post.id}] Ses sentezi (TTS) yapılıyor...")
             audio_path = f"assets/audio/voice_{db_post.id}.wav"
             await generate_tts(ai_text, audio_path, voice=voice)
 
             # 6. ALTYAZI (TRANSCRIBE)
-            print(f"[{db_post.id}] Altyazı (.ass) üretiliyor...")
+            logger.info(f"[{db_post.id}] Altyazı (.ass) üretiliyor...")
             ass_path = f"assets/subtitles/sub_{db_post.id}.ass"
             # generate_subtitles senkron olduğu için to_thread kullanıyoruz
             await asyncio.to_thread(generate_subtitles, audio_path, ass_path)
 
             # 7. RENDER (VİDEO OLUŞTURMA)
-            print(f"[{db_post.id}] Video oluşturuluyor...")
+            logger.info(f"[{db_post.id}] Video oluşturuluyor...")
             bg_video = get_random_background_video()
             bg_music = get_music_path(music_name)
             if not bg_music:
@@ -130,10 +152,10 @@ async def run_pipeline_task(request: GenerateRequest):
             db_post.status = PostStatus.completed
             await db.commit()
             
-            print(f"[{db_post.id}] Tüm boru hattı başarıyla tamamlandı: {final_video_path}")
+            logger.info(f"[{db_post.id}] Tüm boru hattı başarıyla tamamlandı: {final_video_path}")
 
         except Exception as e:
-            print(f"HATA: Boru hattı çalışırken hata oluştu: {str(e)}")
+            logger.error(f"[{db_post.id if 'db_post' in locals() else '?'}] Boru hattı hatası: {e}")
             if 'db_post' in locals():
                 db_post.status = PostStatus.failed
                 db_post.error_message = str(e)
@@ -142,11 +164,6 @@ async def run_pipeline_task(request: GenerateRequest):
 
 @router.post("/")
 async def generate_video(request: GenerateRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
-    """
-    Video üretim pipeline'ını başlatır.
-    Eğer request'te metin gelmezse Reddit'ten otomatik çeker.
-    İşlem uzun süreceği için arka planda (BackgroundTasks) çalıştırılır.
-    """
     background_tasks.add_task(run_pipeline_task, request)
     return {
         "message": "Video üretim işlemi arka planda başarıyla başlatıldı. Logları takip edebilirsiniz.",

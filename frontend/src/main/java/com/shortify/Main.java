@@ -23,6 +23,7 @@ import javafx.stage.StageStyle;
 
 import com.shortify.jobs.BackgroundJobManager;
 import com.shortify.jobs.BackendHealthJob;
+import com.shortify.jobs.PostsRefreshJob;
 import java.util.concurrent.TimeUnit;
 
 public class Main extends Application {
@@ -37,6 +38,7 @@ public class Main extends Application {
 
         // Start Background Jobs
         BackgroundJobManager.getInstance().scheduleJob(new BackendHealthJob(), 0, 30, TimeUnit.SECONDS);
+        BackgroundJobManager.getInstance().scheduleJob(new PostsRefreshJob(), 5, 5, TimeUnit.MINUTES);
 
         URL fxmlLocation = getClass().getResource("/fxml/layout.fxml");
         if (fxmlLocation == null) {
@@ -79,17 +81,46 @@ public class Main extends Application {
             SystemTray tray = SystemTray.getSystemTray();
             java.awt.Image image = Toolkit.getDefaultToolkit().getImage(iconLocation);
             
-            TrayIcon trayIcon = new TrayIcon(image, "Shortify Admin Panel");
+            TrayIcon trayIcon = new TrayIcon(image, "Shortify");
             trayIcon.setImageAutoSize(true);
 
-            // Double click / Click to show window
-            trayIcon.addActionListener(e -> Platform.runLater(() -> {
+            // Native Popup Menu
+            PopupMenu popup = new PopupMenu();
+            
+            MenuItem statusItem = new MenuItem("Sunucu: ⚪ Kontrol ediliyor...");
+            statusItem.setEnabled(false); // Sadece bilgi
+            
+            MenuItem openItem = new MenuItem("Uygulamayı Aç");
+            openItem.addActionListener(e -> Platform.runLater(() -> {
                 if (primaryStage.isIconified()) primaryStage.setIconified(false);
                 primaryStage.show();
                 primaryStage.toFront();
             }));
-
+            
+            MenuItem exitItem = new MenuItem("Çıkış Yap");
+            exitItem.addActionListener(e -> {
+                Platform.runLater(() -> {
+                    Platform.exit();
+                    System.exit(0);
+                });
+            });
+            
+            popup.add(statusItem);
+            popup.addSeparator();
+            popup.add(openItem);
+            popup.add(exitItem);
+            
+            trayIcon.setPopupMenu(popup);
             tray.add(trayIcon);
+            
+            // Dinamik sunucu durumu güncellemesi
+            com.shortify.utils.GlobalState.getInstance().backendOnlineProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal) {
+                    statusItem.setLabel("Sunucu: 🟢 Çevrimiçi");
+                } else {
+                    statusItem.setLabel("Sunucu: 🔴 Çevrimdışı");
+                }
+            });
             
         } catch (Exception e) {
             e.printStackTrace();

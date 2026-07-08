@@ -1,6 +1,7 @@
 import os
 import sys
 from dotenv import load_dotenv
+from loguru import logger
 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -54,7 +55,7 @@ def get_authenticated_service():
             
     return build('youtube', 'v3', credentials=creds)
 
-def upload_video_to_youtube(video_path: str, title: str, description: str, tags: list = None, category_id: str = "24", privacy_status: str = "unlisted"):
+def upload_video_to_youtube(video_path: str, title: str, description: str, tags: list = None, category_id: str = "24", privacy_status: str = "public"):
     """
     Belirtilen videoyu YouTube'a yükler.
     category_id: 24 (Entertainment) veya 22 (People & Blogs)
@@ -84,7 +85,7 @@ def upload_video_to_youtube(video_path: str, title: str, description: str, tags:
         media_body=MediaFileUpload(video_path, chunksize=-1, resumable=True)
     )
 
-    print(f"\nYouTube yüklemesi başlıyor: {video_path}")
+    logger.info(f"YouTube yüklemesi başlıyor: {video_path}")
     response = None
     while response is None:
         status, response = insert_request.next_chunk()
@@ -93,7 +94,6 @@ def upload_video_to_youtube(video_path: str, title: str, description: str, tags:
             sys.stdout.write(f"\rYükleniyor: {progress}%")
             sys.stdout.flush()
 
-    print(f"\n\n✅ Yükleme Tamamlandı! Video ID: {response['id']}")
-    print(f"🔗 Video Linki: https://youtu.be/{response['id']}")
+    logger.info(f"Yükleme Tamamlandı! Video ID: {response['id']} - https://youtu.be/{response['id']}")
     
     return response['id']
