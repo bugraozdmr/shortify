@@ -25,7 +25,7 @@ DEFAULTS = {
     "allowed_upload_end_time": "22:00",
     "ai_provider": "gemini",
     "ai_model": "gemini-2.5-flash",
-    "api_keys": {"gemini": "", "openai": "", "deepseek": ""},
+    "api_keys": {"gemini": "", "openai": "", "deepseek": "", "openrouter": ""},
     "auto_generate_enabled": False,
     "auto_generate_interval_hours": 0,
     "auto_generate_interval_minutes": 30,

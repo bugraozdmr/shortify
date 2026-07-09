@@ -29,8 +29,17 @@ async def _call_gemini(model: str, key: str, prompt: str, content: str, max_retr
             await asyncio.sleep(retry_wait)
 
 async def _call_openai_compatible(provider: str, model: str, key: str, prompt: str, content: str, max_retries: int = 3, retry_wait: int = 3) -> str:
-    base_url = "https://api.deepseek.com" if provider == "deepseek" else None
-    default_model = "gpt-4o-mini" if provider == "openai" else "deepseek-chat"
+    base_url = None
+    default_model = "gpt-4o-mini"
+    
+    if provider == "deepseek":
+        base_url = "https://api.deepseek.com"
+        default_model = "deepseek-chat"
+    elif provider == "openrouter":
+        base_url = "https://openrouter.ai/api/v1"
+        default_model = "openai/gpt-3.5-turbo" # Fallback, users should pass exact model id
+    elif provider == "openai":
+        default_model = "gpt-4o-mini"
     
     if not key:
         raise ValueError(f"API key missing for {provider}")
@@ -141,7 +150,7 @@ async def rewrite_text_for_tiktok(
         if provider == "gemini":
             key = api_keys.get("gemini")
             result_text = await _call_gemini(model, key, default_prompt, full_content, max_retries, retry_wait)
-        elif provider in ["openai", "deepseek"]:
+        elif provider in ["openai", "deepseek", "openrouter"]:
             key = api_keys.get(provider)
             result_text = await _call_openai_compatible(provider, model, key, default_prompt, full_content, max_retries, retry_wait)
         else:

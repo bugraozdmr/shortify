@@ -1,5 +1,6 @@
 import asyncio
-from playwright.async_api import async_playwright
+import httpx
+from bs4 import BeautifulSoup
 from loguru import logger
 from utils.constants import USER_AGENTS
 
@@ -11,37 +12,57 @@ async def fetch_best_posts(subreddit_name: str = "tifu", limit: int = 5, existin
         
     posts = []
     
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent=random.choice(USER_AGENTS)
-        )
-        page = await context.new_page()
-        
-        logger.info(f"Fetching posts from r/{subreddit_name}...")
+    logger.info(f"Fetching posts from r/{subreddit_name} (via httpx)...")
+    
+    current_url = f"https://old.reddit.com/r/{subreddit_name}/"
+    post_urls = []
+    
+    headers = {
+        "User-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "DNT": "1",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1"
+    }
+    
+    async with httpx.AsyncClient(follow_redirects=True, timeout=15.0) as client:
         
         current_url = f"https://old.reddit.com/r/{subreddit_name}/"
         post_urls = []
         
-        for page_num in range(max_pages): # Dynamic limit
-            await page.goto(current_url)
+        for page_num in range(max_pages):
+            r = None
+            for attempt in range(3):
+                headers["User-Agent"] = random.choice(USER_AGENTS)
+                r = await client.get(current_url, headers=headers)
+                if r.status_code == 200:
+                    break
+                logger.warning(f"Reddit deneme {attempt+1} başarısız: HTTP {r.status_code}")
+                await asyncio.sleep(1)
+                
+            if not r or r.status_code != 200:
+                logger.error(f"Reddit tamamen engelledi veya ulaşılamadı. Son status: {r.status_code if r else 'None'}")
+                break
+                
+            soup = BeautifulSoup(r.text, 'html.parser')
+            post_elements = soup.select(".thing")
             
-            post_elements = await page.query_selector_all(".thing")
             for el in post_elements:
-                classes = await el.get_attribute("class") or ""
-                is_promoted = await el.get_attribute("data-promoted")
+                classes = el.get("class", [])
+                is_promoted = el.get("data-promoted")
                 
                 if "stickied" in classes or "promoted" in classes or is_promoted == "true":
                     continue
                     
-                permalink = await el.get_attribute("data-permalink")
-                reddit_id = await el.get_attribute("data-fullname")
+                permalink = el.get("data-permalink")
+                reddit_id = el.get("data-fullname")
                 
                 if not permalink or reddit_id in existing_ids:
                     continue
                     
-                title_el = await el.query_selector("p.title a.title")
-                title = await title_el.inner_text() if title_el else "Unknown Title"
+                title_el = el.select_one("p.title a.title")
+                title = title_el.text if title_el else "Unknown Title"
                 
                 post_urls.append({
                     "id": reddit_id, 
@@ -55,28 +76,33 @@ async def fetch_best_posts(subreddit_name: str = "tifu", limit: int = 5, existin
             if len(post_urls) >= limit:
                 break
                 
-            # Find next page button
-            next_button = await page.query_selector(".next-button a")
-            if next_button:
-                current_url = await next_button.get_attribute("href")
+            next_button = soup.select_one(".next-button a")
+            if next_button and next_button.get("href"):
+                current_url = next_button.get("href")
             else:
-                break # No more pages
+                break
         
         for item in post_urls:
-            await page.goto(item["url"])
-            
-            body_el = await page.query_selector(".entry .usertext-body .md")
-            text = await body_el.inner_text() if body_el else ""
-            
-            if text:
-                posts.append({
-                    "reddit_id": item["id"],
-                    "title": item["title"],
-                    "text": text
-                })
-                logger.info(f"Fetched new post: {item['title']}")
-        
-        await browser.close()
-        
+            r = None
+            for attempt in range(3):
+                headers["User-Agent"] = random.choice(USER_AGENTS)
+                r = await client.get(item["url"], headers=headers)
+                if r.status_code == 200:
+                    break
+                await asyncio.sleep(1)
+                
+            if r and r.status_code == 200:
+                soup = BeautifulSoup(r.text, 'html.parser')
+                body_el = soup.select_one(".entry .usertext-body .md")
+                text = body_el.text.strip() if body_el else ""
+                
+                if text:
+                    posts.append({
+                        "reddit_id": item["id"],
+                        "title": item["title"],
+                        "text": text
+                    })
+                    logger.info(f"Fetched new post: {item['title']}")
+                    
     return posts
 
