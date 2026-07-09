@@ -33,7 +33,15 @@ DEFAULTS = {
     "ai_max_retries": 3,
     "ai_retry_wait_seconds": 3,
     "reddit_fetch_max_pages": 5,
-    "system_cleanup_older_than_days": 1
+    "system_cleanup_older_than_days": 1,
+    "channel_name": "Anlatsana",
+    "telegram_bot_token": "",
+    "telegram_chat_id": "",
+    "telegram_notification_active": True,
+    "youtube_client_id": "",
+    "youtube_client_secret": "",
+    "youtube_redirect_uri": "http://localhost:8080/",
+    "youtube_max_uploads_per_day": 3
 }
 CATEGORIES = {
     "is_auto_upload": "Pipeline",
@@ -49,7 +57,15 @@ CATEGORIES = {
     "ai_max_retries": "AI",
     "ai_retry_wait_seconds": "AI",
     "reddit_fetch_max_pages": "Pipeline",
-    "system_cleanup_older_than_days": "System"
+    "system_cleanup_older_than_days": "System",
+    "channel_name": "System",
+    "telegram_bot_token": "System",
+    "telegram_chat_id": "System",
+    "telegram_notification_active": "System",
+    "youtube_client_id": "System",
+    "youtube_client_secret": "System",
+    "youtube_redirect_uri": "System",
+    "youtube_max_uploads_per_day": "Pipeline"
 }
 
 

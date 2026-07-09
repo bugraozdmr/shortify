@@ -3,23 +3,48 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.types import FSInputFile
 from loguru import logger
-from utils.config import config
 from aiogram.client.default import DefaultBotProperties
+from sqlalchemy.future import select
+from core.database import SessionLocal
+from core.models import Setting
 
-async def _get_bot() -> Bot | None:
-    token = config.TELEGRAM_BOT_TOKEN
+async def _get_telegram_settings():
+    async with SessionLocal() as db:
+        result = await db.execute(select(Setting).where(Setting.key.in_([
+            "telegram_bot_token", "telegram_chat_id", "telegram_notification_active"
+        ])))
+        rows = result.scalars().all()
+        settings = {s.key: s.value.strip('"') if isinstance(s.value, str) else s.value for s in rows}
+        
+        # bool parser for sqlite/json
+        active = settings.get("telegram_notification_active", True)
+        if isinstance(active, str):
+            active = active.lower() == "true"
+            
+        return {
+            "token": settings.get("telegram_bot_token", ""),
+            "chat_id": settings.get("telegram_chat_id", ""),
+            "active": active
+        }
+
+async def _get_bot(token: str) -> Bot | None:
     if not token:
-        logger.warning("TELEGRAM_BOT_TOKEN yapılandırılmamış, Telegram mesajı gönderilemiyor.")
+        logger.warning("TELEGRAM_BOT_TOKEN yapılandırılmamış (DB'de boş), Telegram mesajı gönderilemiyor.")
         return None
     return Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
 async def send_video_success_notification(post_title: str, video_path: str):
-    chat_id = config.TELEGRAM_CHAT_ID
-    if not chat_id:
-        logger.warning("TELEGRAM_CHAT_ID yapılandırılmamış, mesaj atlanıyor.")
+    settings = await _get_telegram_settings()
+    
+    if not settings["active"]:
         return
         
-    bot = await _get_bot()
+    chat_id = settings["chat_id"]
+    if not chat_id:
+        logger.warning("TELEGRAM_CHAT_ID yapılandırılmamış (DB'de boş), mesaj atlanıyor.")
+        return
+        
+    bot = await _get_bot(settings["token"])
     if not bot:
         return
         
@@ -42,12 +67,17 @@ async def send_video_success_notification(post_title: str, video_path: str):
         await bot.session.close()
 
 async def send_error_notification(post_title: str, error_message: str):
-    chat_id = config.TELEGRAM_CHAT_ID
-    if not chat_id:
-        logger.warning("TELEGRAM_CHAT_ID yapılandırılmamış, hata mesajı atlanıyor.")
+    settings = await _get_telegram_settings()
+    
+    if not settings["active"]:
         return
         
-    bot = await _get_bot()
+    chat_id = settings["chat_id"]
+    if not chat_id:
+        logger.warning("TELEGRAM_CHAT_ID yapılandırılmamış (DB'de boş), hata mesajı atlanıyor.")
+        return
+        
+    bot = await _get_bot(settings["token"])
     if not bot:
         return
         

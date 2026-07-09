@@ -5,7 +5,7 @@ import json
 import shutil
 from pathlib import Path
 from loguru import logger
-from utils.config import config
+from loguru import logger
 
 def get_random_background_video() -> str:
     bg_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "backgrounds")
@@ -21,15 +21,14 @@ def get_music_path(music_name: str) -> str:
             return os.path.join(music_dir, f)
     raise FileNotFoundError(f"Music '{music_name}' not found in assets/music/")
 
-def render_video(bg_music_path: str, voice_audio_path: str, ass_subtitle_path: str, output_path: str, title_text: str = None):
+def render_video(bg_music_path: str, voice_audio_path: str, ass_subtitle_path: str, output_path: str, title_text: str = None, channel_name: str = "Anlatsana"):
     from pipeline.background import get_media_duration, generate_dynamic_background
     
     ass_abs = os.path.abspath(ass_subtitle_path)
     ass_escaped = ass_abs.replace('\\', '/').replace(':', '\\:')
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    # Kanal ismini .env'den al (eğer yoksa Shortify yazsın)
-    channel_name = config.get("CHANNEL_NAME", "Shortify")
+    # Kanal ismi artık argüman olarak geliyor
     
     # "Parıltılı" ve kalın (Bold) efekti: 
     drawtext_filter = f"drawtext=font='Arial Rounded MT Bold':text='{channel_name}':fontcolor=white@0.85:fontsize=56:x=(w-text_w)/2:y=h-200:borderw=3:bordercolor=white@0.3:shadowcolor=white@0.2:shadowx=4:shadowy=4"

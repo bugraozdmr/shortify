@@ -7,7 +7,8 @@ from loguru import logger
 
 from core.database import SessionLocal
 from core.models import Post, Setting
-from pipeline.youtube import upload_video_to_youtube
+from core.models import Post, Setting
+from worker import upload_video_task
 
 POLL_INTERVAL = 30
 
@@ -53,34 +54,51 @@ async def process_scheduled_posts():
                 )
                 posts = result.scalars().all()
 
+                # 2. AYAR OKUMA: Max yükleme limiti
+                setting_res = await db.execute(select(Setting).where(Setting.key == "youtube_max_uploads_per_day"))
+                setting_val = setting_res.scalar_one_or_none()
+                max_uploads = 3
+                if setting_val:
+                    try:
+                        max_uploads = int(setting_val.value)
+                    except Exception:
+                        pass
+                        
+                # 3. BUGÜNKÜ YÜKLEMELER
+                start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                today_uploads_res = await db.execute(
+                    select(Post).where(
+                        and_(
+                            Post.youtube_status == "uploaded",
+                            Post.published_at >= start_of_day
+                        )
+                    )
+                )
+                today_uploads_count = len(today_uploads_res.scalars().all())
+
                 for post in posts:
                     try:
-                        logger.info(f"[{post.id}] Zamanlanmış YouTube yüklemesi başlıyor...")
+                        if today_uploads_count >= max_uploads:
+                            # Bugün limit dolmuş. Videoyu bir gün sonraya ötele.
+                            post.scheduled_at = post.scheduled_at + timedelta(days=1)
+                            logger.info(f"[{post.id}] Günlük YouTube yükleme limitine ({max_uploads}) ulaşıldı. Video yarına ötelendi: {post.scheduled_at}")
+                            continue
 
-                        tags = []
-                        if post.youtube_tags:
-                            tags = [t.strip() for t in post.youtube_tags.split(",") if t.strip()]
+                        logger.info(f"[{post.id}] Zamanlanmış YouTube yüklemesi kuyruğa atılıyor (Celery)...")
 
-                        video_id = await asyncio.to_thread(
-                            upload_video_to_youtube,
-                            post.video_path,
-                            post.youtube_title or post.title,
-                            post.youtube_description or "",
-                            tags,
-                        )
+                        # Celery kuyruğuna gönderiyoruz
+                        upload_video_task.delay(post.id)
 
-                        post.youtube_video_id = video_id
-                        post.youtube_url = f"https://youtu.be/{video_id}"
-                        post.youtube_status = "uploaded"
-                        post.published_at = datetime.now()
-                        post.scheduled_at = None
-
-                        logger.info(f"[{post.id}] YouTube'a yüklendi: {post.youtube_url}")
+                        # Durumu "uploading" yaparak tekrar alınmasını engelliyoruz
+                        post.youtube_status = "uploading"
+                        today_uploads_count += 1
+                        
+                        logger.info(f"[{post.id}] Celery kuyruğuna iletildi.")
 
                     except Exception as e:
-                        logger.error(f"[{post.id}] YouTube yükleme hatası: {e}")
+                        logger.error(f"[{post.id}] Kuyruğa atılırken hata oluştu: {e}")
                         post.youtube_status = "failed"
-                        post.error_message = f"YouTube upload failed: {str(e)}"
+                        post.error_message = f"Queueing failed: {str(e)}"
 
                 await db.commit()
 

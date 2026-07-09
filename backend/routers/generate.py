@@ -140,7 +140,8 @@ async def _run_media_step(db_post: Post, ai_result: dict, settings: dict, db: As
         
     title_for_card = re.sub(r'[^\w\s.,!?\'"\-:]', '', title_for_card).strip()
     
-    await asyncio.to_thread(render_video, bg_music, audio_path, ass_path, final_video_path, title_text=title_for_card)
+    channel_name = settings.get("channel_name", "Anlatsana")
+    await asyncio.to_thread(render_video, bg_music, audio_path, ass_path, final_video_path, title_text=title_for_card, channel_name=channel_name)
 
     # 8. Sonuç
     db_post.video_path = final_video_path

@@ -5,17 +5,18 @@ from loguru import logger
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from services.telegram_bot import send_error_notification
-from utils.config import config
+from services.telegram_bot import send_error_notification, _get_telegram_settings
 
 @pytest.mark.asyncio
 async def test_telegram_notification():
     logger.info("Telegram Testi Başlatılıyor...")
     
-    if not config.TELEGRAM_BOT_TOKEN or not config.TELEGRAM_CHAT_ID:
-        pytest.fail("HATA: .env dosyanızda TELEGRAM_BOT_TOKEN veya TELEGRAM_CHAT_ID eksik!")
+    settings = await _get_telegram_settings()
+    
+    if not settings["token"] or not settings["chat_id"]:
+        pytest.fail("HATA: Veritabanında TELEGRAM_BOT_TOKEN veya TELEGRAM_CHAT_ID eksik!")
 
-    logger.info(f"Kullanılan Chat ID: {config.TELEGRAM_CHAT_ID}")
+    logger.info(f"Kullanılan Chat ID: {settings['chat_id']}")
     
     try:
         await send_error_notification(

@@ -1,8 +1,11 @@
 import os
 import sys
 from loguru import logger
-from utils.config import config
-
+from loguru import logger
+from sqlalchemy.future import select
+from core.database import SessionLocal
+from core.models import Setting
+import asyncio
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -10,6 +13,22 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
 SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
+
+def _get_youtube_settings():
+    async def fetch():
+        async with SessionLocal() as db:
+            result = await db.execute(select(Setting).where(Setting.key.in_([
+                "youtube_client_id", "youtube_client_secret", "youtube_redirect_uri"
+            ])))
+            rows = result.scalars().all()
+            settings = {s.key: s.value.strip('"') if isinstance(s.value, str) else s.value for s in rows}
+            return {
+                "client_id": settings.get("youtube_client_id", ""),
+                "client_secret": settings.get("youtube_client_secret", ""),
+                "redirect_uri": settings.get("youtube_redirect_uri", "http://localhost:8080/")
+            }
+    
+    return asyncio.run(fetch())
 
 def get_authenticated_service():
     creds = None
@@ -27,14 +46,15 @@ def get_authenticated_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            client_id = config.get("CLIENT_ID")
-            client_secret = config.get("CLIENT_SECRET")
+            settings = _get_youtube_settings()
+            client_id = settings["client_id"]
+            client_secret = settings["client_secret"]
             
             if not client_id or not client_secret:
-                raise ValueError("CLIENT_ID veya CLIENT_SECRET .env dosyasında bulunamadı!")
+                raise ValueError("youtube_client_id veya youtube_client_secret veritabanında bulunamadı!")
                 
             from urllib.parse import urlparse
-            redirect_uri = config.YOUTUBE_REDIRECT_URI
+            redirect_uri = settings["redirect_uri"]
             parsed_uri = urlparse(redirect_uri)
             port = parsed_uri.port or 8080
 

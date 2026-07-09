@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 
-# Sistemin her yerinden erişilebilmesi için .env doyasını ilk çağrışta yükle
 load_dotenv()
 
 class Config:
@@ -18,13 +17,6 @@ class Config:
     
     # Uygulama Modu
     APP_TYPE = os.getenv("APP_TYPE", "DEVELOPMENT").upper()
-    
-    # YouTube OAuth
-    YOUTUBE_REDIRECT_URI = os.getenv("YOUTUBE_REDIRECT_URI", "http://localhost:8080/")
-
-    # Telegram
-    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-    TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
     # Eğer istenirse daha fazla env değişkeni buraya eklenebilir.
     @staticmethod
