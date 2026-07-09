@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from database import get_db
-from models import Setting
-from schemas import SettingsPayload
+from core.database import get_db
+from core.models import Setting
+from core.schemas import SettingsPayload
 from fastapi.responses import PlainTextResponse
 import os
 
@@ -25,6 +25,7 @@ DEFAULTS = {
     "allowed_upload_end_time": "22:00",
     "ai_provider": "gemini",
     "ai_model": "gemini-2.5-flash",
+    "api_keys": {"gemini": "", "openai": "", "deepseek": ""},
     "auto_generate_enabled": False,
     "auto_generate_interval_hours": 0,
     "auto_generate_interval_minutes": 30,
@@ -36,6 +37,7 @@ CATEGORIES = {
     "allowed_upload_end_time": "Pipeline",
     "ai_provider": "AI",
     "ai_model": "AI",
+    "api_keys": "AI",
     "auto_generate_enabled": "Pipeline",
     "auto_generate_interval_hours": "Pipeline",
     "auto_generate_interval_minutes": "Pipeline",

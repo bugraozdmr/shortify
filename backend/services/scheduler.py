@@ -5,8 +5,8 @@ from sqlalchemy import select, and_
 from sqlalchemy.future import select as future_select
 from loguru import logger
 
-from database import SessionLocal
-from models import Post
+from core.database import SessionLocal
+from core.models import Post
 from pipeline.youtube import upload_video_to_youtube
 
 POLL_INTERVAL = 30

@@ -18,7 +18,7 @@ async def test_full_video_pipeline():
     ass_path = os.path.join(audio_dir, "test_pipeline.ass")
     output_video = os.path.join(video_dir, "test_output.mp4")
     
-    text = "Selam! Bugün size harika bir hikaye anlatacağım. Bu video tamamen otomatik üretildi."
+    text = "Merhabalar! Bu bir sistem testidir. Yeni dinamik arka planlarımız ve karaoke tipi yanan sarı altyazılarımız harika görünüyor! Videolarımızın dikkat çekeceğinden hiç şüphemiz yok. Hemen başlayalım!"
     
     # 1. Generate TTS
     print("Generating TTS...")
@@ -27,14 +27,20 @@ async def test_full_video_pipeline():
     
     # 2. Generate Subtitles
     print("Generating Subtitles...")
-    generate_subtitles(audio_path=voice_path, output_path=ass_path)
+    generate_subtitles(audio_path=voice_path, output_path=ass_path, original_text=text)
     assert os.path.exists(ass_path)
     
     # 3. Render Video
     print("Rendering Video...")
-    music_name = "Wii Music" # Using a valid music name
-    render_video(voice_audio_path=voice_path, ass_subtitle_path=ass_path, music_name=music_name, output_path=output_video)
-    
+    from pipeline.render import get_music_path
+    bg_music = get_music_path("Wii Music")
+    render_video(
+        bg_music_path=bg_music,
+        voice_audio_path=voice_path,
+        ass_subtitle_path=ass_path,
+        output_path=output_video,
+        title_text=text
+    )
     assert os.path.exists(output_video)
     file_size = os.path.getsize(output_video)
     assert file_size > 0

@@ -2,10 +2,8 @@ import os
 import re
 import google.generativeai as genai
 from openai import AsyncOpenAI
-from dotenv import load_dotenv
+from utils.config import config
 from loguru import logger
-
-load_dotenv()
 
 async def rewrite_text_for_tiktok(
     title: str, 
@@ -64,7 +62,7 @@ async def rewrite_text_for_tiktok(
         "- Wii Music (Rahat, sakin anlatımlar)\n"
         "- Wii Shop Channel (Eğlenceli, nostaljik, liste)\n\n"
         "YOUTUBE META VERİLERİ (videoyu sat!):\n"
-        "- YT_TITLE: Tıklama oranı yüksek, merak uyandıran, duygusal veya şok edici bir başlık (maks 80 karakter). Büyük harf ve emoji kullanmaktan çekinme.\n"
+        "- YT_TITLE: Tıklama oranı yüksek, merak uyandıran, duygusal veya şok edici bir başlık (maks 80 karakter). Başlığın sonuna bizi öne çıkaracak maks 3 adet hashtag ekle (örnek: #shorts #komik #hikaye). Büyük harf ve emoji kullanmaktan çekinme.\n"
         "- YT_DESC: 2-3 satırlık açıklama. İlk satır merak uyandırsın, sonra #hashtag'lerle bitir. Anahtar kelimeleri doğal şekilde yerleştir.\n"
         "- YT_TAGS: 10-15 arası virgülle ayrılmış etiket. Geniş + dar eşleme yap. Örn: shorts, keşfet, hikaye, gerçek hikaye, komik, tifu, itiraf, psikoloji, iş hayatı, ilişkiler, aşk, başarısızlık, ders, pişmanlık, komik anı\n\n"
         "YANIT FORMATI (kesinlikle bu sırayla):\n"

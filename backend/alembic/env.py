@@ -22,8 +22,8 @@ import sys
 # Add backend directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from models import Base
-from database import DATABASE_URL
+from core.models import Base
+from core.database import DATABASE_URL
 
 target_metadata = Base.metadata
 

@@ -4,9 +4,9 @@ from sqlalchemy.future import select
 from sqlalchemy import func
 import os
 from datetime import datetime, timezone
-from database import get_db
-from models import Post
-from schemas import PostOut, PaginatedPostsOut, PostUpdate
+from core.database import get_db
+from core.models import Post
+from core.schemas import PostOut, PaginatedPostsOut, PostUpdate
 from typing import List, Optional
 
 router = APIRouter(prefix="/posts", tags=["Posts"])

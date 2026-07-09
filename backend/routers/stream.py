@@ -8,7 +8,6 @@ router = APIRouter(
     tags=["stream"]
 )
 
-# 2MB chunks for highly performant streaming and seeking without memory bloat
 CHUNK_SIZE = 1024 * 1024 * 2
 
 @router.get("/thumbnail/{video_name}")
@@ -42,14 +41,12 @@ async def get_thumbnail(video_name: str):
 async def stream_video(video_name: str, request: Request):
     video_path = os.path.join("assets", "videos", video_name)
     
-    # Dosya yoksa 404 dön
     if not os.path.exists(video_path):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Video not found")
 
     file_size = os.stat(video_path).st_size
     range_header = request.headers.get("range")
 
-    # Eğer browser bir Range header göndermemişse
     if not range_header:
         headers = {
             "Content-Length": str(file_size),
@@ -57,7 +54,6 @@ async def stream_video(video_name: str, request: Request):
             "Content-Type": "video/mp4",
         }
         
-        # Generator for streaming the full file efficiently
         def file_iterator_full(file_path: str, chunk_size: int):
             with open(file_path, "rb") as f:
                 while True:
@@ -72,7 +68,6 @@ async def stream_video(video_name: str, request: Request):
             media_type="video/mp4"
         )
 
-    # Range header parse (örn: "bytes=0-1024")
     try:
         range_str = range_header.strip().split("=")[1]
         start_str, end_str = range_str.split("-")
@@ -81,13 +76,10 @@ async def stream_video(video_name: str, request: Request):
     except ValueError:
         raise HTTPException(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE)
 
-    # End sınırını kontrol et
     end = min(end, file_size - 1)
     
-    # İstenen byte uzunluğu
     length = end - start + 1
 
-    # Chunk bazlı okuma yapan generator (Memory verimliliği ve stream hızı için)
     def file_iterator_partial(file_path: str, start: int, end: int, chunk_size: int):
         with open(file_path, "rb") as f:
             f.seek(start)
@@ -105,7 +97,6 @@ async def stream_video(video_name: str, request: Request):
         "Accept-Ranges": "bytes",
         "Content-Length": str(length),
         "Content-Type": "video/mp4",
-        # Ekstra performans için tarayıcı cache kontrol başlıkları eklenebilir
         "Cache-Control": "public, max-age=3600"
     }
 

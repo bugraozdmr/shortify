@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from loguru import logger
 
-from database import SessionLocal
-from models import Setting
-from schemas import GenerateRequest
+from core.database import SessionLocal
+from core.models import Setting
+from core.schemas import GenerateRequest
 from routers.generate import run_pipeline_task
 
 POLL_INTERVAL = 15
@@ -16,19 +16,19 @@ _running_tasks: set[asyncio.Task] = set()
 
 
 async def _run_generation():
-    async with _semaphore:
-        logger.info("Otomatik video üretimi başlıyor...")
-        try:
-            request = GenerateRequest(mode="auto")
-            await run_pipeline_task(request)
-            logger.info("Otomatik video üretimi tamamlandı.")
-        except Exception as e:
-            logger.error(f"Otomatik video üretim hatası: {e}")
+    logger.info("Otomatik video üretimi başlıyor...")
+    try:
+        from worker import process_video_task
+        request = GenerateRequest(mode="auto")
+        # Kuyruğa atıyoruz. Senkron olarak .delay() çağrılır.
+        process_video_task.delay(request.model_dump())
+        logger.info("Otomatik video üretim isteği Celery kuyruğuna gönderildi.")
+    except Exception as e:
+        logger.error(f"Otomatik video üretim hatası: {e}")
 
 
 def _cleanup_done():
-    done = {t for t in _running_tasks if t.done()}
-    _running_tasks.difference_update(done)
+    pass # Artık yerel task yönetimi yapmıyoruz
 
 
 async def auto_generate_loop():

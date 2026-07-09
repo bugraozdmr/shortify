@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from loguru import logger
-from schemas import GenerateRequest
+from core.schemas import GenerateRequest
 import asyncio
 import os
 import re
@@ -16,8 +16,8 @@ from pipeline.transcribe import generate_subtitles
 from pipeline.render import render_video, get_random_background_video, get_music_path
 
 # Import Database tools for the background task
-from database import SessionLocal, get_db
-from models import Post, PostStatus, Setting
+from core.database import SessionLocal, get_db
+from core.models import Post, PostStatus, Setting
 
 router = APIRouter(prefix="/generate", tags=["Generate"])
 
@@ -46,8 +46,6 @@ async def run_pipeline_task(request: GenerateRequest):
             source_id = str(uuid.uuid4()) # Varsayılan unique id
             source = "manual"
             subreddit = None
-            author = None
-            upvotes = 0
 
             if request.mode == "manual":
                 if not request.custom_text:
@@ -59,7 +57,7 @@ async def run_pipeline_task(request: GenerateRequest):
                 # Otomatik Mod (Reddit)
                 source = "reddit"
                 subreddit = "tifu"
-                posts = await fetch_best_posts(subreddit, limit=10)
+                posts = await fetch_best_posts(subreddit, limit=30)
                 
                 selected_post = None
                 for p in posts:
@@ -81,10 +79,7 @@ async def run_pipeline_task(request: GenerateRequest):
                 source=source,
                 source_id=source_id,
                 subreddit=subreddit,
-                author=author,
-                upvotes=upvotes,
                 title=post_title,
-                original_text=original_text,
                 status=PostStatus.processing
             )
             db.add(db_post)
@@ -115,8 +110,6 @@ async def run_pipeline_task(request: GenerateRequest):
             voice = ai_result["voice"]
             music_name = ai_result["music"]
 
-            db_post.ai_text = ai_text
-            db_post.voice_used = voice
             db_post.youtube_title = ai_result.get("youtube_title")
             db_post.youtube_description = ai_result.get("youtube_description")
             db_post.youtube_tags = ai_result.get("youtube_tags")
@@ -131,23 +124,32 @@ async def run_pipeline_task(request: GenerateRequest):
             logger.info(f"[{db_post.id}] Altyazı (.ass) üretiliyor...")
             ass_path = f"assets/subtitles/sub_{db_post.id}.ass"
             # generate_subtitles senkron olduğu için to_thread kullanıyoruz
-            await asyncio.to_thread(generate_subtitles, audio_path, ass_path)
+            await asyncio.to_thread(generate_subtitles, audio_path, ass_path, ai_text)
 
             # 7. RENDER (VİDEO OLUŞTURMA)
             logger.info(f"[{db_post.id}] Video oluşturuluyor...")
-            bg_video = get_random_background_video()
             bg_music = get_music_path(music_name)
             if not bg_music:
                 bg_music = get_music_path("Wii Music") # Fallback
                 
             final_video_path = f"assets/videos/short_{db_post.id}.mp4"
             
+            # Kart başlığı için Türkçe üretilmiş youtube_title'ı kullanalım, yoksa orijinali kalsın
+            if db_post.youtube_title:
+                # Hashtag'leri (#shorts vb.) temizle
+                clean_title = re.sub(r'#\w+', '', db_post.youtube_title).strip()
+                title_for_card = clean_title if clean_title else db_post.youtube_title
+            else:
+                title_for_card = db_post.title
+                
+            # Emoji ve desteklenmeyen karakterleri temizle (Sadece harf, rakam, temel noktalama)
+            # \w harf/rakam/altçizgi, \s boşluk. Özel Türkçe karakterleri \w zaten yakalar.
+            title_for_card = re.sub(r'[^\w\s.,!?\'"\-:]', '', title_for_card).strip()
+            
             # render_video da senkron
-            await asyncio.to_thread(render_video, bg_video, bg_music, audio_path, ass_path, final_video_path)
+            await asyncio.to_thread(render_video, bg_music, audio_path, ass_path, final_video_path, title_text=title_for_card)
 
             # 8. SONUÇ
-            db_post.bg_video_used = os.path.basename(bg_video)
-            db_post.music_used = os.path.basename(bg_music) if bg_music else None
             db_post.video_path = final_video_path
             db_post.status = PostStatus.completed
             await db.commit()
@@ -163,9 +165,14 @@ async def run_pipeline_task(request: GenerateRequest):
 
 
 @router.post("/")
-async def generate_video(request: GenerateRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
-    background_tasks.add_task(run_pipeline_task, request)
+async def generate_video(request: GenerateRequest, db: AsyncSession = Depends(get_db)):
+    # Celery task'ını çalıştır.
+    # request.model_dump() veya dict(request) diyerek sözlüğe çevirip gönderiyoruz.
+    from worker import process_video_task
+    
+    process_video_task.delay(request.model_dump())
+    
     return {
-        "message": "Video üretim işlemi arka planda başarıyla başlatıldı. Logları takip edebilirsiniz.",
+        "message": "Video üretim işlemi kuyruğa (Celery) eklendi. Arka planda işleniyor.",
         "status": "processing"
     }

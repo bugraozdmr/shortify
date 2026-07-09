@@ -1,16 +1,13 @@
 import os
 import sys
-from dotenv import load_dotenv
 from loguru import logger
+from utils.config import config
 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-
-# .env dosyasını yükle
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 SCOPES = ['https://www.googleapis.com/auth/youtube.upload']
 
@@ -30,24 +27,29 @@ def get_authenticated_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            client_id = os.getenv("CLIENT_ID")
-            client_secret = os.getenv("CLIENT_SECRET")
+            client_id = config.get("CLIENT_ID")
+            client_secret = config.get("CLIENT_SECRET")
             
             if not client_id or not client_secret:
                 raise ValueError("CLIENT_ID veya CLIENT_SECRET .env dosyasında bulunamadı!")
                 
+            from urllib.parse import urlparse
+            redirect_uri = config.YOUTUBE_REDIRECT_URI
+            parsed_uri = urlparse(redirect_uri)
+            port = parsed_uri.port or 8080
+
             client_config = {
                 "installed": {
                     "client_id": client_id,
                     "client_secret": client_secret,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": ["http://localhost:8080/"]
+                    "redirect_uris": [redirect_uri]
                 }
             }
             # Tarayıcıda yetkilendirme akışını başlat
             flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            creds = flow.run_local_server(port=8080)
+            creds = flow.run_local_server(port=port)
         
         # Token'ı diske kaydet (sonraki girişler için)
         with open(token_path, 'w') as token:
