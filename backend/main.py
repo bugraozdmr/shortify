@@ -27,8 +27,11 @@ from services.auto_generator import start as start_auto_gen, stop as stop_auto_g
 from fastapi.staticfiles import StaticFiles
 from utils.config import config
 
+from utils.health import check_dependencies
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await check_dependencies()
     start_scheduler()
     start_auto_gen()
     yield

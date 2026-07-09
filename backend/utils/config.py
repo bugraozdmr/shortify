@@ -22,6 +22,10 @@ class Config:
     # YouTube OAuth
     YOUTUBE_REDIRECT_URI = os.getenv("YOUTUBE_REDIRECT_URI", "http://localhost:8080/")
 
+    # Telegram
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
     # Eğer istenirse daha fazla env değişkeni buraya eklenebilir.
     @staticmethod
     def get(key: str, default=None):

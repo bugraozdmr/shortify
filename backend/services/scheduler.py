@@ -1,12 +1,12 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, delete
 from sqlalchemy.future import select as future_select
 from loguru import logger
 
 from core.database import SessionLocal
-from core.models import Post
+from core.models import Post, Setting
 from pipeline.youtube import upload_video_to_youtube
 
 POLL_INTERVAL = 30
@@ -16,6 +16,29 @@ async def process_scheduled_posts():
         try:
             async with SessionLocal() as db:
                 now = datetime.now()
+                
+                # --- CLEANUP TASK ---
+                # 1 günden eski olan ve hala 'processing' statüsünde takılı kalmış kayıtları sil
+                # Veritabanından dinamik olarak okuyoruz
+                setting_res = await db.execute(select(Setting).where(Setting.key == "system_cleanup_older_than_days"))
+                setting_val = setting_res.scalar_one_or_none()
+                days_to_keep = 1
+                if setting_val:
+                    try:
+                        days_to_keep = int(setting_val.value)
+                    except Exception:
+                        pass
+                        
+                cutoff_time = now - timedelta(days=days_to_keep)
+                delete_stmt = delete(Post).where(
+                    and_(
+                        Post.status == "processing",
+                        Post.created_at < cutoff_time
+                    )
+                )
+                await db.execute(delete_stmt)
+                
+                # --- SCHEDULED UPLOAD TASK ---
                 result = await db.execute(
                     select(Post).where(
                         and_(
@@ -59,8 +82,7 @@ async def process_scheduled_posts():
                         post.youtube_status = "failed"
                         post.error_message = f"YouTube upload failed: {str(e)}"
 
-                if posts:
-                    await db.commit()
+                await db.commit()
 
         except Exception as e:
             logger.error(f"Scheduler hatası: {e}")

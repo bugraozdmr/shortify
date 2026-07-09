@@ -4,7 +4,6 @@ import subprocess
 from loguru import logger
 
 def get_media_duration(file_path: str) -> float:
-    """ffprobe kullanarak bir medyanın süresini saniye cinsinden döndürür."""
     cmd = [
         "ffprobe", 
         "-v", "error", 
@@ -20,10 +19,6 @@ def get_media_duration(file_path: str) -> float:
         return 0.0
 
 def generate_dynamic_background(target_duration: float, output_path: str):
-    """
-    Belirtilen hedef süreye (target_duration) ulaşana kadar,
-    relaxing klasöründeki videolardan rastgele 3-7 saniyelik kesitler alır ve birleştirir.
-    """
     logger.info(f"Generating dynamic background video for duration: {target_duration}s")
     base_dir = os.path.dirname(os.path.dirname(__file__))
     relaxing_dir = os.path.join(base_dir, "assets", "backgrounds", "relaxing")
@@ -96,8 +91,6 @@ def generate_dynamic_background(target_duration: float, output_path: str):
             f"setsar=1:1[v{i}];"
         )
         
-    # xfade kullanarak yumuşak geçişler (transition) ekle
-    # Tüm geçişler için süre 0.5 saniye
     xfade_duration = 0.5
     
     if len(slices) == 1:

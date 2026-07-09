@@ -29,7 +29,11 @@ DEFAULTS = {
     "auto_generate_enabled": False,
     "auto_generate_interval_hours": 0,
     "auto_generate_interval_minutes": 30,
-    "auto_generate_max_concurrent": 2
+    "auto_generate_max_concurrent": 2,
+    "ai_max_retries": 3,
+    "ai_retry_wait_seconds": 3,
+    "reddit_fetch_max_pages": 5,
+    "system_cleanup_older_than_days": 1
 }
 CATEGORIES = {
     "is_auto_upload": "Pipeline",
@@ -41,7 +45,11 @@ CATEGORIES = {
     "auto_generate_enabled": "Pipeline",
     "auto_generate_interval_hours": "Pipeline",
     "auto_generate_interval_minutes": "Pipeline",
-    "auto_generate_max_concurrent": "Pipeline"
+    "auto_generate_max_concurrent": "Pipeline",
+    "ai_max_retries": "AI",
+    "ai_retry_wait_seconds": "AI",
+    "reddit_fetch_max_pages": "Pipeline",
+    "system_cleanup_older_than_days": "System"
 }
 
 

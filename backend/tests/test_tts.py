@@ -1,20 +1,19 @@
 import pytest
+import sys
 import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from pipeline.tts import generate_tts
 
 @pytest.mark.asyncio
 async def test_generate_tts():
-    """
-    Test generating an MP3 file using edge-tts.
-    """
     sample_text = "Merhaba Şeyma annen seni sevmiyor"
     
-    # Save to a dedicated assets/audio folder instead of the script directory
     audio_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "audio")
     os.makedirs(audio_dir, exist_ok=True)
     output_path = os.path.join(audio_dir, "test_audio.mp3")
     
-    # Generate the TTS file
     result_path = await generate_tts(text=sample_text, output_path=output_path)
     
     assert result_path is not None

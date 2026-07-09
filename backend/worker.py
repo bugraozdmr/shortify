@@ -43,4 +43,4 @@ def process_video_task(request_dict: dict):
         return {"status": "success"}
     except Exception as e:
         logger.error(f"Celery task hatası: {e}")
-        return {"status": "failed", "error": str(e)}
+        raise e
