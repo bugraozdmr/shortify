@@ -70,23 +70,43 @@ def _parse_ai_response(result_text: str, fallback_title: str) -> dict:
     music_match = re.search(r'\[MUSIC:(.*?)\]', result_text, flags=re.IGNORECASE)
     music = music_match.group(1).strip() if music_match else "Wii Music"
     
-    yt_title_match = re.search(r'\[YT_TITLE:(.*?)\]', result_text, flags=re.IGNORECASE)
+    yt_title_match = re.search(r'\[YT_TITLE:(.*?)\]', result_text, flags=re.IGNORECASE|re.DOTALL)
     yt_title = yt_title_match.group(1).strip() if yt_title_match else fallback_title
     
-    yt_desc_match = re.search(r'\[YT_DESC:(.*?)\]', result_text, flags=re.IGNORECASE)
+    yt_desc_match = re.search(r'\[YT_DESC:(.*?)\]', result_text, flags=re.IGNORECASE|re.DOTALL)
     yt_desc = yt_desc_match.group(1).strip() if yt_desc_match else ""
     
-    yt_tags_match = re.search(r'\[YT_TAGS:(.*?)\]', result_text, flags=re.IGNORECASE)
+    yt_tags_match = re.search(r'\[YT_TAGS:(.*?)\]', result_text, flags=re.IGNORECASE|re.DOTALL)
     yt_tags = yt_tags_match.group(1).strip() if yt_tags_match else "shorts,reddit"
     
-    # Clean tags and separator from the text
-    clean_text = re.sub(r'\[(GENDER|MUSIC|YT_TITLE|YT_DESC|YT_TAGS):.*?\]', '', result_text, flags=re.IGNORECASE)
-    clean_text = re.sub(r'---+\s*', '', clean_text)
+    # If the AI properly used ---, take only the last part as the script
+    if "---" in result_text:
+        clean_text = result_text.split("---")[-1]
+    else:
+        clean_text = result_text
+
+    # Clean any remaining tags or bracketed info from the text
+    clean_text = re.sub(r'\[.*?\]', '', clean_text, flags=re.IGNORECASE|re.DOTALL)
+    
+    # Remove any hashtags from the spoken text so TTS doesn't read them
+    clean_text = re.sub(r'#\w+', '', clean_text)
+    
+    # Remove any stray "YT_TAGS:" or "YT_DESC:" that leaked into the text
+    clean_text = re.sub(r'YT_[A-Z]+:.*', '', clean_text, flags=re.IGNORECASE)
     
     # Normalize whitespace
     clean_text = re.sub(r'\n\s*\n', '\n', clean_text)
     clean_text = re.sub(r'  +', ' ', clean_text).strip()
     clean_text = re.sub(r'\n', ' ', clean_text).strip()
+    
+    # TTS duraklama yapmasın diye tüm noktalama işaretlerini temizle
+    clean_text = re.sub(r'[.,!?;:…"]', '', clean_text)
+    clean_text = re.sub(r'[-—]+', ' ', clean_text)
+    clean_text = clean_text.replace("'", "")
+    clean_text = clean_text.replace("`", "")
+    
+    # Son bir kez fazla boşlukları temizle
+    clean_text = re.sub(r'  +', ' ', clean_text).strip()
     
     return {
         "text": clean_text,
@@ -120,7 +140,8 @@ async def rewrite_text_for_tiktok(
         "5. ÇOK ÖNEMLİ: Hikayeyi TEK PARAGRAF halinde yaz. Kesinlikle satır atlama, boşluk bırakma. Cümleler art arda düz metin olarak gelsin.\n"
         "6. Cümleler birbirine bağlı aksın, duraklama olmasın. Kesinlikle ... (üç nokta) kullanma.\n"
         "7. Duyguyu hissettir: Şaşkınlık, utanç, korku, komedi — hikayenin türüne göre tonu ayarla.\n"
-        "8. Hızlı bir tempoda anlat. Akış sürekli olsun, boşluk ve bekleme olmasın.\n\n"
+        "8. Hızlı bir tempoda anlat. Akış sürekli olsun, boşluk ve bekleme olmasın.\n"
+        "9. ASLA metnin (senaryonun) içine hashtag (#), etiket, başlık veya 'YT_TAGS' gibi şeyler yazma! Sadece okunacak hikayeyi yaz.\n\n"
         "MÜZİK SEÇİMİ (hikayenin havasına en uygun olanı seç):\n"
         "- Sneaky Snitch (Gizem / Komedi, yalan söyleme)\n"
         "- Scheming Weasel Faster (Kaotik Komedi, kavga, absürt olaylar)\n"
@@ -159,5 +180,58 @@ async def rewrite_text_for_tiktok(
         return _parse_ai_response(result_text, fallback_title=title)
             
     except Exception as e:
-        logger.error(f"[{provider.upper()}] API Error: {e}")
-        return None
+        logger.error(f"Error during AI rewriting ({provider}): {e}")
+        raise e
+
+async def translate_comments(
+    comments: list,
+    provider: str = "gemini",
+    model: str = "gemini-2.5-flash",
+    api_keys: dict = None,
+    max_retries: int = 3,
+    retry_wait: int = 3
+) -> list:
+    if not comments:
+        return []
+    
+    provider = provider.lower()
+    api_keys = api_keys or {}
+    
+    prompt = (
+        "Sen usta bir çevirmensin. Verilen Reddit yorumlarını İngilizceden Türkçeye "
+        "kısa, öz ve internet jargonuna uygun, samimi bir şekilde çevir. Yorumlar "
+        "video içinde kısa süreliğine ekranda görüneceği için lafı uzatmadan ana fikri ver.\n\n"
+        "SADECE çevrilmiş metinleri alt alta yaz. Başka hiçbir şey ekleme."
+    )
+    
+    translated_comments = []
+    
+    for c in comments:
+        text = c.get("text", "")
+        if not text:
+            translated_comments.append(c)
+            continue
+            
+        content = f"Çevrilecek Yorum:\n{text}"
+        
+        try:
+            if provider == "gemini":
+                api_key = api_keys.get("gemini")
+                result = await _call_gemini(model, api_key, prompt, content, max_retries, retry_wait)
+            elif provider in ["openai", "deepseek", "openrouter"]:
+                api_key = api_keys.get(provider)
+                result = await _call_openai_compatible(provider, model, api_key, prompt, content, max_retries, retry_wait)
+            else:
+                logger.warning(f"Unknown AI provider for translation: {provider}")
+                result = text
+                
+            translated_text = result.strip() if result else text
+            # Replace the text with translated one
+            c_translated = c.copy()
+            c_translated["text"] = translated_text
+            translated_comments.append(c_translated)
+        except Exception as e:
+            logger.error(f"Failed to translate comment: {e}")
+            translated_comments.append(c) # Fallback to original
+            
+    return translated_comments

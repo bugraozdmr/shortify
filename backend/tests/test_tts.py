@@ -8,7 +8,9 @@ from pipeline.tts import generate_tts
 
 @pytest.mark.asyncio
 async def test_generate_tts():
-    sample_text = "Merhaba Şeyma annen seni sevmiyor"
+    sample_text = """
+     Market çalışanı olarak birkaç gün önce yaşadığım olayı anlatayım size Bir kadın yedi yaşlarında oğluyla geldi çocuğun elinde sönmüş perişan halde bir balon hayvan vardı Annesi bana helyum tankımız olup olmadığını sordu balonu doldurmak istiyormuş Ben de üzülerek olmadığını söyledim Kadın hemen sinirlendi Şimdi ne yapacağım ben Çocuk bütün gün bunun için ağladı diye çıkıştı Daha ben cevap veremeden çocuk annesine döndü Sorun değil anneciğim biraz yorgun olsa da balonumu hala seviyorum dedi Annesi bir an çocuğa baktı ve sonra bir anda hüngür hüngür ağlamaya başladı Resmen marketin ortasında çirkin çirkin ağlıyordu Çocuk annesinin sırtını sıvazlayıp Ağlama anne yenisini alırız dedi Ben de elimde bir poşet patatesle hayatımda ne yapacağımı bilemez halde öylece durdum kaldım
+    """
     
     audio_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "audio")
     os.makedirs(audio_dir, exist_ok=True)

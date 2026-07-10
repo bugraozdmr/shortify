@@ -21,7 +21,7 @@ def get_music_path(music_name: str) -> str:
             return os.path.join(music_dir, f)
     raise FileNotFoundError(f"Music '{music_name}' not found in assets/music/")
 
-def render_video(bg_music_path: str, voice_audio_path: str, ass_subtitle_path: str, output_path: str, title_text: str = None, channel_name: str = "Anlatsana"):
+def render_video(bg_music_path: str, voice_audio_path: str, ass_subtitle_path: str, output_path: str, title_text: str = None, channel_name: str = "Anlatsana", comments: list = None):
     from pipeline.background import get_media_duration, generate_dynamic_background
     
     ass_abs = os.path.abspath(ass_subtitle_path)
@@ -57,31 +57,88 @@ def render_video(bg_music_path: str, voice_audio_path: str, ass_subtitle_path: s
     generate_dynamic_background(target_duration=bg_target_duration, output_path=temp_bg_path)
     
     # Input 0: Dinamik Video, Input 1: Voice, Input 2: Music
-    # Artık video zaten tam sese göre kesildiği için -stream_loop'a gerek yok
     cmd.extend([
         "-i", temp_bg_path,
         "-i", voice_audio_path,
         "-stream_loop", "-1", "-i", bg_music_path
     ])
     
+    fonts_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "fonts")
+    fonts_dir_escaped = fonts_dir.replace('\\', '/').replace(':', '\\:')
+    
+    input_index = 3
+    filter_complex = f"[0:v]ass='{ass_escaped}':fontsdir='{fonts_dir_escaped}',{drawtext_filter}[v_base];"
+    last_v = "[v_base]"
+    
     if title_text:
-        # Input 3: Card image
         cmd.extend(["-i", card_path])
+        filter_complex += f"{last_v}[{input_index}:v]overlay=(W-w)/2:(H-h)/2:enable='between(t,0,4)'[v_title];"
+        last_v = "[v_title]"
+        input_index += 1
         
-        # [0:v] (bg_video) üzerine ass ve drawtext ekle -> [v_text]
-        # [v_text] üzerine [3:v] (kart) ekle (overlay) -> [v]
-        filter_complex = (
-            f"[0:v]ass='{ass_escaped}',{drawtext_filter}[v_text];"
-            f"[v_text][3:v]overlay=(W-w)/2:(H-h)/2:enable='between(t,0,4)'[v];"
-            f"[2:a]volume=0.45[music];"
-            f"[1:a][music]amix=inputs=2:duration=first:dropout_transition=2[a]"
-        )
-    else:
-        filter_complex = (
-            f"[0:v]ass='{ass_escaped}',{drawtext_filter}[v];"
-            f"[2:a]volume=0.45[music];"
-            f"[1:a][music]amix=inputs=2:duration=first:dropout_transition=2[a]"
-        )
+    comment_card_paths = []
+    audio_mix_inputs = ["[1:a]", "[music]"] # voice, bg_music
+    num_audio_inputs = 2
+    
+    if comments and len(comments) > 0:
+        from pipeline.card_generator import generate_comment_card
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        vine_boom_path = os.path.join(base_dir, "assets", "music", "funny", "vine_boom.mp3")
+        
+        # Saniyeleri hesapla
+        # Örnek: Videonun 30% - 50% arasında 1. yorum, 70% - 90% arasında 2. yorum
+        for i, c in enumerate(comments[:2]):
+            c_path = os.path.join(base_dir, "assets", "images", f"temp_comment_{i}.png")
+            generate_comment_card(c["author"], c["text"], c_path)
+            comment_card_paths.append(c_path)
+            
+            if i == 0:
+                start_t = voice_duration * 0.3
+                end_t = voice_duration * 0.5
+            else:
+                start_t = voice_duration * 0.7
+                end_t = voice_duration * 0.9
+                
+            cmd.extend(["-i", c_path])
+            
+            next_v = f"[v_c{i}]"
+            # Ortalamak yerine biraz alta veya yana koyabiliriz. Y ekseninde ortaya koyalım.
+            filter_complex += f"{last_v}[{input_index}:v]overlay=(W-w)/2:(H-h)/2+200:enable='between(t,{start_t},{end_t})'{next_v};"
+            last_v = next_v
+            input_index += 1
+            
+            if os.path.exists(vine_boom_path):
+                cmd.extend(["-i", vine_boom_path])
+                # Ses gecikmesi ms cinsinden
+                delay_ms = int(start_t * 1000)
+                next_a = f"[a_boom{i}]"
+                filter_complex += f"[{input_index}:a]volume=0.8,adelay={delay_ms}|{delay_ms}{next_a};"
+                audio_mix_inputs.append(next_a)
+                input_index += 1
+                num_audio_inputs += 1
+
+    # Outro Card
+    outro_start_t = max(0, voice_duration - 2.0)
+    outro_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "images", "temp_outro.png")
+    
+    from pipeline.card_generator import generate_outro_card
+    generate_outro_card(channel_name, outro_path)
+    
+    cmd.extend(["-i", outro_path])
+    next_v = "[v_outro]"
+    filter_complex += f"{last_v}[{input_index}:v]overlay=(W-w)/2:(H-h)/2:enable='between(t,{outro_start_t},{voice_duration})'{next_v};"
+    last_v = next_v
+    input_index += 1
+
+    # Rename last video stream to [v]
+    filter_complex += f"{last_v}copy[v];"
+    
+    # Audio mix
+    amix_str = "".join(audio_mix_inputs)
+    filter_complex += (
+        f"[2:a]volume=0.45[music];"
+        f"{amix_str}amix=inputs={num_audio_inputs}:duration=first:dropout_transition=2[a]"
+    )
         
     cmd.extend([
         "-filter_complex", filter_complex,
@@ -103,6 +160,17 @@ def render_video(bg_music_path: str, voice_audio_path: str, ass_subtitle_path: s
     if card_path and os.path.exists(card_path):
         try:
             os.remove(card_path)
+        except:
+            pass
+    for c_path in comment_card_paths:
+        if os.path.exists(c_path):
+            try:
+                os.remove(c_path)
+            except:
+                pass
+    if os.path.exists(outro_path):
+        try:
+            os.remove(outro_path)
         except:
             pass
             

@@ -121,6 +121,27 @@
                             <Label text="DeepSeek API Key" prefWidth="180" styleClass="text-bold"/>
                             <TextField fx:id="txtDeepseekKey" promptText="API Key giriniz..." HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
                         </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-key" iconSize="18" styleClass="text-muted"/>
+                            <Label text="OpenRouter API Key" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtOpenrouterKey" promptText="API Key giriniz..." HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-repeat" iconSize="18" styleClass="text-muted"/>
+                            <Label text="AI Max Tekrar (Retry)" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtAiMaxRetries" promptText="3" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-clock" iconSize="18" styleClass="text-muted"/>
+                            <Label text="Retry Bekleme (sn)" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtAiRetryWait" promptText="3" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
                     </VBox>
                 </VBox>
             </VBox>
@@ -152,6 +173,20 @@
                             <FontIcon iconLiteral="fth-clock" iconSize="18" styleClass="text-muted"/>
                             <Label text="Bitiş Saati" prefWidth="180" styleClass="text-bold"/>
                             <TextField fx:id="txtUploadEnd" promptText="Örn: 22:00" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-search" iconSize="18" styleClass="text-muted"/>
+                            <Label text="Reddit Max Sayfa" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtRedditFetchMaxPages" promptText="5" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-upload-cloud" iconSize="18" styleClass="text-muted"/>
+                            <Label text="Günlük Max YouTube" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtYoutubeMaxUploadsPerDay" promptText="3" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
                         </HBox>
                     </VBox>
                 </VBox>
@@ -190,6 +225,72 @@
                             <FontIcon iconLiteral="fth-layers" iconSize="18" styleClass="text-muted"/>
                             <Label text="Aynı Anda Max" prefWidth="180" styleClass="text-bold"/>
                             <TextField fx:id="txtGenMaxConcurrent" promptText="2" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+                    </VBox>
+                </VBox>
+            </VBox>
+
+            <!-- System Settings -->
+            <VBox spacing="10">
+                <Label text="Sistem Ayarları" styleClass="text-bold, text-muted">
+                    <padding><Insets left="10"/></padding>
+                </Label>
+                <VBox styleClass="card" spacing="15">
+                    <padding><Insets top="15" right="20" bottom="15" left="20"/></padding>
+                    <VBox spacing="15">
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-hash" iconSize="18" styleClass="text-muted"/>
+                            <Label text="Kanal Adı" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtChannelName" promptText="Anlatsana" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-trash-2" iconSize="18" styleClass="text-muted"/>
+                            <Label text="Temizlik (gün)" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtSystemCleanupDays" promptText="1" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-message-circle" iconSize="18" styleClass="text-muted"/>
+                            <Label text="Telegram Bot Token" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtTelegramBotToken" promptText="Bot Token" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-message-square" iconSize="18" styleClass="text-muted"/>
+                            <Label text="Telegram Chat ID" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtTelegramChatId" promptText="Chat ID" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-bell" iconSize="18" styleClass="text-muted"/>
+                            <Label text="Telegram Bildirim" prefWidth="180" styleClass="text-bold"/>
+                            <CheckBox fx:id="chkTelegramNotification" text="Aktif Et" HBox.hgrow="ALWAYS" />
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-youtube" iconSize="18" styleClass="text-muted"/>
+                            <Label text="YouTube Client ID" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtYoutubeClientId" promptText="Client ID" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-lock" iconSize="18" styleClass="text-muted"/>
+                            <Label text="YouTube Client Secret" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtYoutubeClientSecret" promptText="Client Secret" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
+                        </HBox>
+
+                        <Region style="-fx-background-color: -color-border-default;" prefHeight="1" />
+                        <HBox alignment="CENTER_LEFT" spacing="15">
+                            <FontIcon iconLiteral="fth-link" iconSize="18" styleClass="text-muted"/>
+                            <Label text="YouTube Redirect URI" prefWidth="180" styleClass="text-bold"/>
+                            <TextField fx:id="txtYoutubeRedirectUri" promptText="http://localhost:8080/" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 0 5 0;"/>
                         </HBox>
                     </VBox>
                 </VBox>

@@ -1,14 +1,16 @@
 import pytest
 import os
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from pipeline.render import render_video
 from pipeline.tts import generate_tts
 from pipeline.transcribe import generate_subtitles
 
 @pytest.mark.asyncio
 async def test_full_video_pipeline():
-    """
-    Test the full video generation pipeline: TTS -> Transcribe -> Render
-    """
     audio_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "audio")
     video_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "videos")
     os.makedirs(audio_dir, exist_ok=True)

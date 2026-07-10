@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, and_, delete
 from sqlalchemy.future import select as future_select
@@ -16,7 +16,7 @@ async def process_scheduled_posts():
     while True:
         try:
             async with SessionLocal() as db:
-                now = datetime.now()
+                now = datetime.now(timezone.utc)
                 
                 # --- CLEANUP TASK ---
                 # 1 günden eski olan ve hala 'processing' statüsünde takılı kalmış kayıtları sil

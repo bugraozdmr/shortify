@@ -1,56 +1,56 @@
-import pytest
+import asyncio
+import json
 import sys
 import os
+import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from utils.config import config
-from pipeline.ai_rewrite import rewrite_text_for_tiktok
+from sqlalchemy.future import select
 from core.database import SessionLocal
-import sqlalchemy
-import json
+from core.models import Setting
+from pipeline.ai_rewrite import rewrite_text_for_tiktok
+
+SAMPLE_TEXT = """I work at a grocery store and a few days ago this woman comes in with her son who's about 7 years old. The kid is holding a balloon animal that's all deflated and sad looking. The mom asks me if we have a helium tank to refill it. I told her sorry we don't have one.
+
+She gets all huffy and says "Well what am I supposed to do? He's been crying about this all day." Before I can even respond the kid goes "It's okay mommy, I still love my balloon even if it's a little tired."
+
+The mom just stares at him for a second and then starts BAWLING. Like full on ugly crying in the middle of the store. The kid starts patting her back saying "Don't cry mommy, we can get a new one."
+
+I just stood there holding a bag of potatoes not knowing what to do with my life."""
 
 @pytest.mark.asyncio
-async def test_rewrite_text_for_tiktok():
+async def test_rewrite():
+    print("=" * 60)
+    print("AI REWRITE TEST")
+    print("=" * 60)
+    print(f"\nINPUT TEXT:\n{SAMPLE_TEXT[:200]}...\n")
+
     async with SessionLocal() as db:
-        res = await db.execute(sqlalchemy.text("SELECT `key`, value FROM settings WHERE `key` IN ('ai_provider', 'ai_model', 'api_keys')"))
-        rows = res.fetchall()
-        settings = {}
-        for r in rows:
-            try:
-                settings[r[0]] = json.loads(r[1])
-            except:
-                settings[r[0]] = r[1]
-                
-    ai_provider = settings.get("ai_provider", "gemini")
-    ai_model = settings.get("ai_model", "gemini-2.5-flash")
-    api_keys = settings.get("api_keys", {})
-    
-    if not api_keys.get(ai_provider):
-        pytest.skip(f"API key for {ai_provider} not found in database settings")
-        
-    sample_title = "TIFU by sending my boss a meme"
-    sample_text = "I thought I was sending a meme to my friend but it went to my boss. It was a meme about hating work."
-    
+        result = await db.execute(select(Setting).where(Setting.key == "api_keys"))
+        s = result.scalar_one_or_none()
+        api_keys = json.loads(s.value) if s else {}
+
     result = await rewrite_text_for_tiktok(
-        title=sample_title, 
-        text=sample_text, 
-        provider=ai_provider,
-        model=ai_model,
+        title="I work at a grocery store",
+        text=SAMPLE_TEXT,
+        provider="gemini",
+        model="gemini-2.5-flash",
         api_keys=api_keys
     )
-    
-    assert result is not None
-    assert isinstance(result, dict)
-    assert "text" in result
-    assert "gender" in result
-    assert len(result["text"]) > 0
-    
-    print("\n" + "="*50)
-    print(f"✅ TEST SUCCESSFUL! AI REWRITE ({ai_provider.upper()}):")
-    print("="*50)
-    print(f"Detected Gender: {result['gender']}")
-    print(f"Selected Music:  {result.get('music', 'Unknown')}")
-    print("-" * 50)
-    print(result["text"])
-    print("="*50 + "\n")
+
+    print("\n" + "=" * 60)
+    print("OUTPUT:")
+    print("=" * 60)
+    print(f"\nTEXT: {result['text']}")
+    print(f"\nGENDER: {result['gender']}")
+    print(f"\nMUSIC: {result['music']}")
+    print(f"\nYT_TITLE: {result['youtube_title']}")
+    print(f"\nYT_DESC: {result['youtube_description']}")
+    print(f"\nYT_TAGS: {result['youtube_tags']}")
+    print("\n" + "=" * 60)
+    print(f"TEXT LENGTH: {len(result['text'])} chars, ~{len(result['text'].split())} words")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    asyncio.run(test_rewrite())

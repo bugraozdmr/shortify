@@ -80,15 +80,15 @@ def upload_video_task(post_id: int):
                     post.youtube_title or post.title,
                     post.youtube_description or "",
                     tags,
+                    publish_at=post.scheduled_at
                 )
 
                 post.youtube_video_id = video_id
                 post.youtube_url = f"https://youtu.be/{video_id}"
                 post.youtube_status = "uploaded"
                 post.published_at = datetime.now()
-                # scheduled_at'i zaten temizlemiştik veya temizleyebiliriz
-                post.scheduled_at = None
-
+                # scheduled_at'i sıfırlamıyoruz ki UI'da ne zamana planlandığı görünsün.
+                
                 logger.info(f"[{post.id}] YouTube'a başarıyla yüklendi: {post.youtube_url}")
                 await db.commit()
                 

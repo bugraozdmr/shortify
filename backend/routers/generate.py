@@ -10,7 +10,7 @@ import uuid
 
 # Import the standalone pipeline modules
 from pipeline.fetcher import fetch_best_posts
-from pipeline.ai_rewrite import rewrite_text_for_tiktok
+from pipeline.ai_rewrite import rewrite_text_for_tiktok, translate_comments
 from pipeline.tts import generate_tts
 from pipeline.transcribe import generate_subtitles
 from pipeline.render import render_video, get_random_background_video, get_music_path
@@ -43,6 +43,7 @@ async def _prepare_post(request: GenerateRequest, settings: dict, db: AsyncSessi
         source_id = str(uuid.uuid4())
         source = "manual"
         subreddit = None
+        comments = []
     else:
         source = "reddit"
         subreddit = "tifu"
@@ -62,12 +63,14 @@ async def _prepare_post(request: GenerateRequest, settings: dict, db: AsyncSessi
         original_text = selected_post["text"]
         post_title = selected_post["title"]
         source_id = selected_post["reddit_id"]
+        comments = selected_post.get("comments", [])
         
     db_post = Post(
         source=source,
         source_id=source_id,
         subreddit=subreddit,
         title=post_title,
+        comments=comments,
         status=PostStatus.processing
     )
     db.add(db_post)
@@ -105,6 +108,19 @@ async def _run_ai_step(db_post: Post, post_title: str, original_text: str, setti
     db_post.youtube_title = ai_result.get("youtube_title")
     db_post.youtube_description = ai_result.get("youtube_description")
     db_post.youtube_tags = ai_result.get("youtube_tags")
+    
+    if db_post.comments:
+        logger.info(f"[{db_post.id}] Yorumlar Türkçeye çevriliyor...")
+        translated_comments = await translate_comments(
+            comments=db_post.comments,
+            provider=ai_provider,
+            model=ai_model,
+            api_keys=api_keys,
+            max_retries=max_retries,
+            retry_wait=retry_wait
+        )
+        db_post.comments = translated_comments
+        
     await db.commit()
     return ai_result
 
@@ -141,7 +157,7 @@ async def _run_media_step(db_post: Post, ai_result: dict, settings: dict, db: As
     title_for_card = re.sub(r'[^\w\s.,!?\'"\-:]', '', title_for_card).strip()
     
     channel_name = settings.get("channel_name", "Anlatsana")
-    await asyncio.to_thread(render_video, bg_music, audio_path, ass_path, final_video_path, title_text=title_for_card, channel_name=channel_name)
+    await asyncio.to_thread(render_video, bg_music, audio_path, ass_path, final_video_path, title_text=title_for_card, channel_name=channel_name, comments=db_post.comments)
 
     # 8. Sonuç
     db_post.video_path = final_video_path

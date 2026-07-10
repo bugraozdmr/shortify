@@ -27,16 +27,16 @@ def generate_subtitles(audio_path: str, output_path: str = None, original_text: 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     result.to_ass(
         output_path,
-        font='Arial Rounded MT Bold',
-        font_size=20,           # Daha belirgin ve büyük
-        color='&H00FFFFFF',     # Beyaz ana metin
-        highlight_color='&H0000FFFF', # Sarı vurgu rengi (BGR: 00FFFF)
-        outline=3,
-        shadow=0,
+        font='Archivo Black',
+        font_size=20,           
+        color='&H00FFFFFF',     
+        highlight_color='&H000066FF',
+        outline=5,
+        shadow=3,               
         karaoke=True,
-        word_level=True,        # Her okunan kelime sırayla sarı olacak
-        Alignment=5,            # Merkeze hizalama
-        Bold=True               
+        word_level=True,
+        Alignment=5,            
+        Bold=False
     )
     
     return output_path

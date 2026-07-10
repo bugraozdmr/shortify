@@ -32,11 +32,11 @@ from utils.health import check_dependencies
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await check_dependencies()
-    start_scheduler()
+    # start_scheduler()
     start_auto_gen()
     yield
     stop_auto_gen()
-    stop_scheduler()
+    # stop_scheduler()
 
 APP_TYPE = config.APP_TYPE
 

@@ -37,7 +37,21 @@ public class SettingsController {
     @FXML private TextField txtGeminiKey;
     @FXML private TextField txtOpenaiKey;
     @FXML private TextField txtDeepseekKey;
+    @FXML private TextField txtOpenrouterKey;
+    @FXML private TextField txtAiMaxRetries;
+    @FXML private TextField txtAiRetryWait;
 
+    @FXML private TextField txtRedditFetchMaxPages;
+    @FXML private TextField txtYoutubeMaxUploadsPerDay;
+
+    @FXML private TextField txtChannelName;
+    @FXML private TextField txtSystemCleanupDays;
+    @FXML private TextField txtTelegramBotToken;
+    @FXML private TextField txtTelegramChatId;
+    @FXML private CheckBox chkTelegramNotification;
+    @FXML private TextField txtYoutubeClientId;
+    @FXML private TextField txtYoutubeClientSecret;
+    @FXML private TextField txtYoutubeRedirectUri;
 
 
     @FXML private CheckBox chkAutoUpload;
@@ -54,7 +68,7 @@ public class SettingsController {
         txtApiUrl.setText(ConfigManager.getInstance().getApiUrl());
         
         // Initialize ComboBoxes
-        cmbAiProvider.getItems().addAll("gemini", "openai", "deepseek");
+        cmbAiProvider.getItems().addAll("gemini", "openai", "deepseek", "openrouter");
         
         // Setup AI Models logic
         setupAiModelsLogic();
@@ -120,6 +134,14 @@ public class SettingsController {
                 "deepseek-r1", "deepseek-r1-0528", "deepseek-r1-lite",
                 "deepseek-coder-v2", "deepseek-math", "deepseek-vl"
             );
+        } else if ("openrouter".equals(provider)) {
+            cmbAiModel.getItems().addAll(
+                "openai/gpt-5", "openai/gpt-5-mini", "openai/gpt-4.1",
+                "google/gemini-2.5-flash", "google/gemini-2.5-pro",
+                "anthropic/claude-sonnet-4", "anthropic/claude-4-opus",
+                "deepseek/deepseek-v3", "deepseek/deepseek-r1",
+                "meta-llama/llama-4", "mistralai/mistral-large"
+            );
         }
         
         // Eğer önceki model listede varsa koru, yoksa ilkini seç
@@ -158,18 +180,32 @@ public class SettingsController {
             txtGeminiKey.setText(keys.optString("gemini", ""));
             txtOpenaiKey.setText(keys.optString("openai", ""));
             txtDeepseekKey.setText(keys.optString("deepseek", ""));
+            txtOpenrouterKey.setText(keys.optString("openrouter", ""));
         }
 
-        
+        txtAiMaxRetries.setText(String.valueOf(json.optInt("ai_max_retries", 3)));
+        txtAiRetryWait.setText(String.valueOf(json.optInt("ai_retry_wait_seconds", 3)));
 
         chkAutoUpload.setSelected(json.optBoolean("is_auto_upload", false));
         txtUploadStart.setText(json.optString("allowed_upload_start_time", "18:00"));
         txtUploadEnd.setText(json.optString("allowed_upload_end_time", "22:00"));
 
+        txtRedditFetchMaxPages.setText(String.valueOf(json.optInt("reddit_fetch_max_pages", 5)));
+        txtYoutubeMaxUploadsPerDay.setText(String.valueOf(json.optInt("youtube_max_uploads_per_day", 3)));
+
         chkAutoGenerate.setSelected(json.optBoolean("auto_generate_enabled", false));
         txtGenHours.setText(String.valueOf(json.optInt("auto_generate_interval_hours", 0)));
         txtGenMinutes.setText(String.valueOf(json.optInt("auto_generate_interval_minutes", 30)));
         txtGenMaxConcurrent.setText(String.valueOf(json.optInt("auto_generate_max_concurrent", 2)));
+
+        txtChannelName.setText(json.optString("channel_name", "Anlatsana"));
+        txtSystemCleanupDays.setText(String.valueOf(json.optInt("system_cleanup_older_than_days", 1)));
+        txtTelegramBotToken.setText(json.optString("telegram_bot_token", ""));
+        txtTelegramChatId.setText(json.optString("telegram_chat_id", ""));
+        chkTelegramNotification.setSelected(json.optBoolean("telegram_notification_active", true));
+        txtYoutubeClientId.setText(json.optString("youtube_client_id", ""));
+        txtYoutubeClientSecret.setText(json.optString("youtube_client_secret", ""));
+        txtYoutubeRedirectUri.setText(json.optString("youtube_redirect_uri", "http://localhost:8080/"));
     }
 
     @FXML
@@ -195,18 +231,32 @@ public class SettingsController {
             keys.put("gemini", txtGeminiKey.getText().trim());
             keys.put("openai", txtOpenaiKey.getText().trim());
             keys.put("deepseek", txtDeepseekKey.getText().trim());
+            keys.put("openrouter", txtOpenrouterKey.getText().trim());
             payload.put("api_keys", keys);
 
-            
+            payload.put("ai_max_retries", Integer.parseInt(txtAiMaxRetries.getText().trim()));
+            payload.put("ai_retry_wait_seconds", Integer.parseInt(txtAiRetryWait.getText().trim()));
 
             payload.put("is_auto_upload", chkAutoUpload.isSelected());
             payload.put("allowed_upload_start_time", txtUploadStart.getText());
             payload.put("allowed_upload_end_time", txtUploadEnd.getText());
 
+            payload.put("reddit_fetch_max_pages", Integer.parseInt(txtRedditFetchMaxPages.getText().trim()));
+            payload.put("youtube_max_uploads_per_day", Integer.parseInt(txtYoutubeMaxUploadsPerDay.getText().trim()));
+
             payload.put("auto_generate_enabled", chkAutoGenerate.isSelected());
             payload.put("auto_generate_interval_hours", Integer.parseInt(txtGenHours.getText().trim()));
             payload.put("auto_generate_interval_minutes", Integer.parseInt(txtGenMinutes.getText().trim()));
             payload.put("auto_generate_max_concurrent", Integer.parseInt(txtGenMaxConcurrent.getText().trim()));
+
+            payload.put("channel_name", txtChannelName.getText().trim());
+            payload.put("system_cleanup_older_than_days", Integer.parseInt(txtSystemCleanupDays.getText().trim()));
+            payload.put("telegram_bot_token", txtTelegramBotToken.getText().trim());
+            payload.put("telegram_chat_id", txtTelegramChatId.getText().trim());
+            payload.put("telegram_notification_active", chkTelegramNotification.isSelected());
+            payload.put("youtube_client_id", txtYoutubeClientId.getText().trim());
+            payload.put("youtube_client_secret", txtYoutubeClientSecret.getText().trim());
+            payload.put("youtube_redirect_uri", txtYoutubeRedirectUri.getText().trim());
             
             String targetUrl = newUrl + "/settings/";
             String jsonPayload = payload.toString();

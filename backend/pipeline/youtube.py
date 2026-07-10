@@ -1,7 +1,6 @@
 import os
 import sys
 from loguru import logger
-from loguru import logger
 from sqlalchemy.future import select
 from core.database import SessionLocal
 from core.models import Setting
@@ -77,11 +76,12 @@ def get_authenticated_service():
             
     return build('youtube', 'v3', credentials=creds)
 
-def upload_video_to_youtube(video_path: str, title: str, description: str, tags: list = None, category_id: str = "24", privacy_status: str = "public"):
+def upload_video_to_youtube(video_path: str, title: str, description: str, tags: list = None, category_id: str = "24", privacy_status: str = "public", publish_at=None):
     """
     Belirtilen videoyu YouTube'a yükler.
     category_id: 24 (Entertainment) veya 22 (People & Blogs)
     privacy_status: 'public', 'private', 'unlisted'
+    publish_at: datetime object for scheduled publish. If provided, privacy_status must be 'private'.
     """
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"Video bulunamadı: {video_path}")
@@ -100,6 +100,13 @@ def upload_video_to_youtube(video_path: str, title: str, description: str, tags:
             'selfDeclaredMadeForKids': False
         }
     }
+    
+    if publish_at:
+        body['status']['privacyStatus'] = 'private'
+        from datetime import timezone
+        if publish_at.tzinfo is None:
+            publish_at = publish_at.replace(tzinfo=timezone.utc)
+        body['status']['publishAt'] = publish_at.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
     insert_request = youtube.videos().insert(
         part=','.join(body.keys()),

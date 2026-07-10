@@ -21,8 +21,6 @@ import json
 
 DEFAULTS = {
     "is_auto_upload": False,
-    "allowed_upload_start_time": "18:00",
-    "allowed_upload_end_time": "22:00",
     "ai_provider": "gemini",
     "ai_model": "gemini-2.5-flash",
     "api_keys": {"gemini": "", "openai": "", "deepseek": "", "openrouter": ""},
@@ -45,8 +43,6 @@ DEFAULTS = {
 }
 CATEGORIES = {
     "is_auto_upload": "Pipeline",
-    "allowed_upload_start_time": "Pipeline",
-    "allowed_upload_end_time": "Pipeline",
     "ai_provider": "AI",
     "ai_model": "AI",
     "api_keys": "AI",

@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, Boolean, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, Boolean, Float, JSON
 from sqlalchemy.sql import func
 from core.database import Base
 
@@ -22,6 +22,7 @@ class Post(Base):
     error_message = Column(Text, nullable=True)
     
     video_path = Column(String(512), nullable=True)
+    comments = Column(JSON, nullable=True)
     
     # YouTube Integration
     youtube_video_id = Column(String(100), nullable=True)

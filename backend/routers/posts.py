@@ -99,17 +99,14 @@ async def publish_post(
 
     if scheduled_at:
         post.scheduled_at = scheduled_at
-        message = "Post scheduled for publishing"
-        await db.commit()
-        await db.refresh(post)
-        return {"message": message, "scheduled_at": scheduled_at.isoformat()}
-         
-    post.youtube_status = "uploaded"
-    post.published_at = func.now()
-    
+
+    from worker import upload_video_task
+    post.youtube_status = "uploading"
     await db.commit()
-    await db.refresh(post)
-    return {"message": "Post published successfully", "youtube_status": "uploaded"}
+
+    upload_video_task.delay(post.id)
+
+    return {"message": "Post queued for publishing", "youtube_status": "uploading"}
 
 @router.delete("/{post_id}")
 async def delete_post(post_id: int, db: AsyncSession = Depends(get_db)):

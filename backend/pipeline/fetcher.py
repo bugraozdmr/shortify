@@ -97,10 +97,29 @@ async def fetch_best_posts(subreddit_name: str = "tifu", limit: int = 5, existin
                 text = body_el.text.strip() if body_el else ""
                 
                 if text:
+                    # Yorumları çekme
+                    comments_data = []
+                    comment_els = soup.select(".sitetable.nestedlisting > .thing.comment")
+                    for c_el in comment_els:
+                        author_el = c_el.select_one("p.tagline a.author")
+                        c_body_el = c_el.select_one(".usertext-body .md")
+                        if author_el and c_body_el:
+                            c_author = author_el.text.strip()
+                            c_text = c_body_el.text.strip()
+                            # 150 karakterden kısa, çok kısa olmayan (en az 10 karakter) yorumları al
+                            if 10 < len(c_text) < 150:
+                                comments_data.append({
+                                    "author": c_author,
+                                    "text": c_text
+                                })
+                        if len(comments_data) >= 2:
+                            break
+
                     posts.append({
                         "reddit_id": item["id"],
                         "title": item["title"],
-                        "text": text
+                        "text": text,
+                        "comments": comments_data
                     })
                     logger.info(f"Fetched new post: {item['title']}")
                     
