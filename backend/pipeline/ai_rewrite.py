@@ -99,11 +99,17 @@ def _parse_ai_response(result_text: str, fallback_title: str) -> dict:
     clean_text = re.sub(r'  +', ' ', clean_text).strip()
     clean_text = re.sub(r'\n', ' ', clean_text).strip()
     
-    # TTS duraklama yapmasın diye tüm noktalama işaretlerini temizle
-    clean_text = re.sub(r'[.,!?;:…"]', '', clean_text)
+    # TTS için noktalama: vurguyu koru ama gereksiz duraklamaları azalt
+    # Ünlem ve soru işaretlerini noktaya çevir (vurgu kaybolmaz ama duraklama kısalır)
+    clean_text = clean_text.replace('!', '.')
+    clean_text = clean_text.replace('?', '.')
+    # Birden fazla noktayı tek noktaya indir
+    clean_text = re.sub(r'\.{2,}', '.', clean_text)
+    # Virgül sonrası boşluğu kaldırma (TTS doğal akışı bozmasın)
+    # Tire vb karakterleri boşluğa çevir
     clean_text = re.sub(r'[-—]+', ' ', clean_text)
-    clean_text = clean_text.replace("'", "")
-    clean_text = clean_text.replace("`", "")
+    # Tırnakları kaldır
+    clean_text = clean_text.replace('"', '').replace("'", "").replace("`", "")
     
     # Son bir kez fazla boşlukları temizle
     clean_text = re.sub(r'  +', ' ', clean_text).strip()

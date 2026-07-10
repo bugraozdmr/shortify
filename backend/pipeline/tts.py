@@ -6,6 +6,7 @@ from loguru import logger
 async def generate_tts(text: str, output_path: str, voice: str = "tr-TR-AhmetNeural"):
     try:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
         communicate = edge_tts.Communicate(text, voice, rate="+10%")
         await communicate.save(output_path)
 

@@ -10,6 +10,7 @@ from sqlalchemy.future import select
 from core.database import SessionLocal
 from core.models import Setting
 from pipeline.ai_rewrite import rewrite_text_for_tiktok
+from pipeline.tts import generate_tts
 
 SAMPLE_TEXT = """I work at a grocery store and a few days ago this woman comes in with her son who's about 7 years old. The kid is holding a balloon animal that's all deflated and sad looking. The mom asks me if we have a helium tank to refill it. I told her sorry we don't have one.
 
@@ -51,6 +52,10 @@ async def test_rewrite():
     print("\n" + "=" * 60)
     print(f"TEXT LENGTH: {len(result['text'])} chars, ~{len(result['text'].split())} words")
     print("=" * 60)
+
+    audio_path = f"/tmp/test_tts_{hash(result['text']) % 10000}.mp3"
+    await generate_tts(result['text'], audio_path, voice="tr-TR-AhmetNeural")
+    print(f"\nTTS kaydedildi: {audio_path} ({os.path.getsize(audio_path)} bytes)")
 
 if __name__ == "__main__":
     asyncio.run(test_rewrite())
