@@ -39,7 +39,10 @@ DEFAULTS = {
     "youtube_client_id": "",
     "youtube_client_secret": "",
     "youtube_redirect_uri": "http://localhost:8080/",
-    "youtube_max_uploads_per_day": 3
+    "youtube_max_uploads_per_day": 3,
+    "elevenlabs_api_key": "",
+    "elevenlabs_voice_male": "9q3uhh453wT9R7x3sW1i",
+    "elevenlabs_voice_female": "tnSpp4vdxKPjI9w0GnoV"
 }
 CATEGORIES = {
     "is_auto_upload": "Pipeline",
@@ -61,7 +64,10 @@ CATEGORIES = {
     "youtube_client_id": "System",
     "youtube_client_secret": "System",
     "youtube_redirect_uri": "System",
-    "youtube_max_uploads_per_day": "Pipeline"
+    "youtube_max_uploads_per_day": "Pipeline",
+    "elevenlabs_api_key": "AI",
+    "elevenlabs_voice_male": "AI",
+    "elevenlabs_voice_female": "AI"
 }
 
 

@@ -12,6 +12,7 @@ import uuid
 from pipeline.fetcher import fetch_best_posts
 from pipeline.ai_rewrite import rewrite_text_for_tiktok, translate_comments
 from pipeline.tts import generate_tts
+from pipeline.elevenlabs import generate_elevenlabs_tts
 from pipeline.transcribe import generate_subtitles
 from pipeline.render import render_video, get_random_background_video, get_music_path
 from services.telegram_bot import send_video_success_notification, send_error_notification
@@ -51,7 +52,6 @@ async def _prepare_post(request: GenerateRequest, settings: dict, db: AsyncSessi
         existing_query = await db.execute(select(Post.source_id).filter(Post.source == source))
         existing_ids = set(existing_query.scalars().all())
         
-        # We only need 1 new post, so set limit=1. The fetcher will handle pagination up to dynamic pages.
         max_pages = settings.get("reddit_fetch_max_pages", 5)
         posts = await fetch_best_posts(subreddit, limit=1, existing_ids=existing_ids, max_pages=max_pages)
         
@@ -126,25 +126,20 @@ async def _run_ai_step(db_post: Post, post_title: str, original_text: str, setti
 
 async def _run_media_step(db_post: Post, ai_result: dict, settings: dict, db: AsyncSession):
     gender = ai_result.get("gender", "male")
-    if gender == "female":
-        voice = settings.get("tts_voice_female", "tr-TR-EmelNeural")
-    else:
-        voice = settings.get("tts_voice_male", "tr-TR-AhmetNeural")
+    elevenlabs_key = settings.get("elevenlabs_api_key", "")
         
     music_name = ai_result.get("music", "Wii Music")
     ai_text = ai_result["text"]
     
-    # 5. TTS
-    logger.info(f"[{db_post.id}] Ses sentezi (TTS) yapılıyor (Ses: {voice})...")
     audio_path = f"assets/audio/voice_{db_post.id}.wav"
+    voice = "tr-TR-EmelNeural" if gender == "female" else "tr-TR-AhmetNeural"
+    logger.info(f"[{db_post.id}] Ses sentezi (edge-tts) yapılıyor (Ses: {voice})...")
     await generate_tts(ai_text, audio_path, voice=voice)
 
-    # 6. Altyazı
     logger.info(f"[{db_post.id}] Altyazı (.ass) üretiliyor...")
     ass_path = f"assets/subtitles/sub_{db_post.id}.ass"
     await asyncio.to_thread(generate_subtitles, audio_path, ass_path, ai_text)
 
-    # 7. Render
     logger.info(f"[{db_post.id}] Video oluşturuluyor...")
     bg_music = get_music_path(music_name) or get_music_path("Wii Music")
     final_video_path = f"assets/videos/short_{db_post.id}.mp4"
@@ -159,13 +154,11 @@ async def _run_media_step(db_post: Post, ai_result: dict, settings: dict, db: As
     channel_name = settings.get("channel_name", "Anlatsana")
     await asyncio.to_thread(render_video, bg_music, audio_path, ass_path, final_video_path, title_text=title_for_card, channel_name=channel_name, comments=db_post.comments)
 
-    # 8. Sonuç
     db_post.video_path = final_video_path
     db_post.status = PostStatus.completed
     await db.commit()
     logger.info(f"[{db_post.id}] Tüm boru hattı başarıyla tamamlandı: {final_video_path}")
     
-    # Telegram Başarı Bildirimi
     await send_video_success_notification(post_title=db_post.title, video_path=final_video_path)
 
 async def run_pipeline_task(request: GenerateRequest):
